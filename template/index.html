@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+
+    <title>INF2610 - Rendering de Tempo Real ( TEMPLATE )</title>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="UTF-8" />
+
+    <link rel="icon" href="https://discoverthreejs.com/favicon.ico" type="image/x-icon">
+
+    <link href="styles/main.css" rel="stylesheet" type="text/css">
+
+    <!--
+
+      Include the main three.js script.
+
+      The global variable THREE will be
+      available for use in any scripts
+      loaded after this one.
+
+    -->
+
+    <script src="js/vendor/three/three.js"></script>
+
+    
+    <!--
+      
+      Include the WebGL and OrbitControls script.
+      
+      This must be included AFTER the three.js script as it
+      needs to use the global THREE variable
+      
+    -->
+    
+    <script src="js/vendor/three/WebGL.js"></script>
+    <script src="js/vendor/three/OrbitControls.js"></script>
+
+  </head>
+
+  <body>
+
+    <h1 class="title">INF2610 - Rendering de Tempo Real ( TEMPLATE ) </h1>
+
+    <div id="scene-container">
+      <!-- This div will hold our scene-->
+    </div>
+
+    <script id="vs" type="x-shader/x-vertex">
+      #version 300 es
+
+      out vec4 color;
+      out vec4 color_s;
+      out vec2 vUv;
+
+      void main() {
+        vUv = uv;
+        color = vec4(1.0, 0.0, 0.0, 1.0);
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+  </script>
+  <script id="fs" type="x-shader/x-fragment">
+      #version 300 es
+
+      precision highp float;
+      precision highp int;
+
+      in vec4 color;
+      in vec4 color_s;
+      in vec2 vUv;
+      uniform sampler2D map;
+      out vec4 out_FragColor;
+
+      void main() {
+          out_FragColor = texture2D(map, vUv);
+          //out_FragColor = vec4(0.1, 0.5, 1.0, 1.0);
+          #ifdef USE_MAP
+            //out_FragColor = color + color_s;
+          #endif
+      }
+    </script>
+
+    <!--
+      Finally, include the script that
+      runs your three.js app.
+    -->
+
+    <script src="js/app.js"></script>
+
+  </body>
+
+</html>

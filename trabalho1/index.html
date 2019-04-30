@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset=utf-8>
+    <title>My first three.js app</title>
+    <style>
+        body {
+            background: #000;
+            padding: 0;
+            margin: 0;
+            font-weight: bold;
+            overflow: hidden;
+        }
+
+        #info {
+            position: absolute;
+            top: 0px;
+            width: 100%;
+            color: #ffffff;
+            padding: 5px;
+            font-family: Monospace;
+            font-size: 13px;
+            text-align: center;
+        }
+
+        a {
+            color: #ffffff;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="container"></div>
+    <div id="info"><a href="https://threejs.org" target="_blank" rel="noopener">three.js</a> - decals - Decal Splatter
+        (click or tap to shoot)</div>
+
+    <script src="js/three.js"></script>
+    <script src="js/WebGL.js"></script>
+    <script src="js/controls/OrbitControls.js"></script>
+
+    <script id="vs" type="x-shader/x-vertex">
+        #version 300 es
+
+        struct PointLight {
+            vec3 color;
+            vec3 position;
+            float distance; 
+        };
+    
+        uniform vec4 ka;
+        uniform vec4 kd;
+        uniform vec4 ks;
+        uniform float shi;
+        uniform PointLight pointLights[NUM_POINT_LIGHTS];
+    
+        out vec4 color;
+        out vec4 color_s;
+    
+        void main() {
+            mat4 mvp = projectionMatrix * modelViewMatrix;
+            vec3 veye = vec3( modelViewMatrix * vec4(position, 1.0));
+            vec3 light;
+            for(int l = 0; l < NUM_POINT_LIGHTS; l++) {
+                light = normalize(pointLights[l].position); 
+                // if( leye.w == 0)
+                //   light = normalize(vec3(leye)); 
+                // else
+                //   light = normalize(vec3(leye) - veye);
+                
+                vec3 _normal = normalize( normalMatrix * normal );
+                float ndotl = dot(_normal, light);
+                color = ka + max(0.0, ndotl)*kd;
+        
+                if(ndotl > 0.0) {
+                    vec3 refl = normalize(reflect(-light, _normal));
+                    color_s = ks*pow( max( 0.0, dot( refl, normalize( -veye ) ) ), shi );
+                    max( 0.0, dot( refl, normalize( -veye ) ) );
+                }
+                else {
+                    color_s = vec4(0.0, 0.0, 0.0 ,1.0);
+                }
+            }
+        
+            gl_Position =  mvp * vec4( position, 1.0 );
+        }
+    </script>
+    <script id="vs-ok" type="x-shader/x-vertex">
+        #version 300 es
+
+        varying vec4 color;
+        varying vec4 color_s;
+
+        void main() {
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+    </script>
+    <script id="fs" type="x-shader/x-fragment">
+        #version 300 es
+
+        precision highp float;
+        precision highp int;
+
+        in vec4 color;
+        in vec4 color_s;
+        out vec4 out_FragColor;
+
+        void main() {
+            //out_FragColor = vec4(0.1, 0.5, 1.0, 1.0);
+            out_FragColor = color + color_s;
+        }
+    </script>
+    
+    <!-- <script>
+        //TODO: code is a mees, should probably take time to structure this & find a way to 'modularize' shaders
+        window.addEventListener('load', init)
+        let scene
+        let camera
+        let renderer
+        let cameraControls
+        let sceneObjects = []
+        let uniforms = {}
+
+        function init() {
+
+            if (WEBGL.isWebGL2Available() == false) {
+                document.body.appendChild(WEBGL.getWebGL2ErrorMessage());
+            }
+
+            let canvas = document.createElement('canvas');
+            let context = canvas.getContext('webgl2');
+            renderer = new THREE.WebGLRenderer({
+                canvas: canvas,
+                context: context
+            });
+
+            renderer = new THREE.WebGLRenderer()
+            renderer.setSize(window.innerWidth, window.innerHeight)
+
+            scene = new THREE.Scene()
+
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000)
+            camera.position.z = 5
+
+            // CONTROLS
+            cameraControls = new THREE.OrbitControls(camera, renderer.domElement);
+            cameraControls.target.set(0, 0, 0);
+
+            document.body.appendChild(renderer.domElement)
+            adjustLighting()
+            addBasicCube()
+            addExperimentalCube()
+            animationLoop()
+        }
+
+        function adjustLighting() {
+            let pointLight = new THREE.PointLight(0xdddddd)
+            pointLight.position.set(0, 0, 0)
+            scene.add(pointLight)
+
+            let ambientLight = new THREE.AmbientLight(0x505050)
+            scene.add(ambientLight)
+        }
+
+        function addBasicCube() {
+            let geometry = new THREE.BoxGeometry(1, 1, 1)
+            let material = new THREE.MeshLambertMaterial()
+
+            let mesh = new THREE.Mesh(geometry, material)
+            mesh.position.x = -2
+            scene.add(mesh)
+            sceneObjects.push(mesh)
+        }
+
+        function addExperimentalCube() {
+            uniforms.colorA = {
+                type: 'vec3',
+                value: new THREE.Color(0x74ebd5)
+            }
+            uniforms.colorB = {
+                type: 'vec3',
+                value: new THREE.Color(0xACB6E5)
+            }
+
+            let geometry = new THREE.BoxGeometry(1, 1, 1)
+            let material = new THREE.ShaderMaterial({
+                uniforms: THREE.UniformsUtils.merge([
+                    uniforms,
+                    THREE.UniformsLib['lights']
+                ]),
+                vertexShader: document.getElementById("vs").textContent.trim(),
+                fragmentShader: document.getElementById("fs").textContent.trim(),
+                lights: true
+            })
+
+            let mesh = new THREE.Mesh(geometry, material)
+            mesh.position.x = 2
+            scene.add(mesh)
+            sceneObjects.push(mesh)
+        }
+
+
+        function animationLoop() {
+            renderer.render(scene, camera)
+            requestAnimationFrame(animationLoop)
+        }
+    </script> -->
+
+
+    <script>
+        if (WEBGL.isWebGL2Available() == false) {
+            document.body.appendChild(WEBGL.getWebGL2ErrorMessage());
+        }
+
+        var canvas = document.createElement('canvas');
+        var context = canvas.getContext('webgl2');
+        var renderer = new THREE.WebGLRenderer({
+            canvas: canvas,
+            context: context
+        });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        var scene = new THREE.Scene();
+        var camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.z = 5;
+
+        // LIGHTS
+        ambientLight = new THREE.AmbientLight(0x3f2806);
+        scene.add(ambientLight);
+        pointLight = new THREE.PointLight(0xffaa00, 1, 5000);
+        pointLight.position.set(0,3,0);
+        scene.add(pointLight);
+        sunLight = new THREE.SpotLight(0xffffff, 0.3, 0, Math.PI / 2);
+        sunLight.position.set(1000, 2000, 1000);
+        scene.add(sunLight);
+
+        let pointLightHelper = new THREE.PointLightHelper(pointLight);
+        scene.add(pointLightHelper);
+
+        var controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.minDistance = 1;
+        controls.maxDistance = 20;
+
+        var shaderMaterial = new THREE.ShaderMaterial({
+            vertexShader: document.getElementById("vs").textContent.trim(),
+            fragmentShader: document.getElementById("fs").textContent.trim()
+        });
+
+        // var geometry = new THREE.BoxGeometry(1, 1, 1);
+        // var cube = new THREE.Mesh(geometry, shaderMaterial);
+        // scene.add(cube);
+
+
+        let uniforms = {}
+        uniforms.ka = new THREE.Uniform(new THREE.Vector4(0.21, 0.13, 0.05, 1.0));
+        uniforms.kd = new THREE.Uniform(new THREE.Vector4(0.71, 0.43, 0.18, 1.0));
+        // uniforms.ks = new THREE.Uniform(new THREE.Vector4(0.39, 0.27, 0.17, 1.0));
+        uniforms.ks = new THREE.Uniform(new THREE.Vector4(1.0, 1.0, 1.0, 1.0));
+        
+        // uniforms.kd = {
+        //     type: 'vec3',
+        //     value: new THREE.Color(0xACB6E5)
+        // }
+        // uniforms.ks = {
+        //     type: 'vec3',
+        //     value: new THREE.Color(0xACB6E5)
+        // }
+        uniforms.shi = {
+            type: 'float',
+            value: 100
+        }
+
+        // let geometry = new THREE.BoxGeometry(1, 1, 1);
+        var geometry = new THREE.SphereGeometry( 1, 32, 32 );
+        let material = new THREE.ShaderMaterial({
+            uniforms: THREE.UniformsUtils.merge([
+                uniforms,
+                THREE.UniformsLib['lights']
+            ]),
+            vertexShader: document.getElementById("vs").textContent.trim(),
+            fragmentShader: document.getElementById("fs").textContent.trim(),
+            lights: true
+        })
+        let mesh = new THREE.Mesh(geometry, material)
+        mesh.position.x = 0
+        scene.add(mesh)
+
+
+        function animate() {
+            requestAnimationFrame(animate);
+            // cube.rotation.x += 0.01;
+            // cube.rotation.y += 0.01;
+            renderer.render(scene, camera);
+        }
+        animate();
+    </script>
+</body>
+
+</html>
