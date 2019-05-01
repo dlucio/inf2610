@@ -10,6 +10,7 @@ let camera;
 let controls;
 let renderer;
 let scene;
+let gui;
 let material;
 let mesh;
 
@@ -26,6 +27,7 @@ function init() {
   createMaterial();
   createMeshes();
   createRenderer();
+  createGui();
 
   // start the animation loop
   renderer.setAnimationLoop( () => {
@@ -164,6 +166,53 @@ function render() {
   renderer.render( scene, camera );
 
 }
+
+// 
+function createGui() {
+  
+  gui = new dat.GUI();
+  const params = {
+    'cube color': spotLight.color.getHex(),
+    intensity: spotLight.intensity,
+    distance: spotLight.distance,
+    angle: spotLight.angle,
+    penumbra: spotLight.penumbra,
+    decay: spotLight.decay
+  };
+
+  gui.addColor( params, 'light color' ).onChange( function ( val ) {
+    spotLight.color.setHex( val );
+    render();
+  } );
+
+  gui.add( params, 'intensity', 0, 2 ).onChange( function ( val ) {
+    spotLight.intensity = val;
+    render();
+  } );
+
+  gui.add( params, 'distance', 50, 200 ).onChange( function ( val ) {
+    spotLight.distance = val;
+    render();
+  } );
+
+  gui.add( params, 'angle', 0, Math.PI / 3 ).onChange( function ( val ) {
+    spotLight.angle = val;
+    render();
+  } );
+
+  gui.add( params, 'penumbra', 0, 1 ).onChange( function ( val ) {
+    spotLight.penumbra = val;
+    render();
+  } );
+
+  gui.add( params, 'decay', 1, 2 ).onChange( function ( val ) {
+    spotLight.decay = val;
+    render();
+  } );
+
+  gui.open();
+}
+
 
 // a function that will be called every time the window gets resized.
 // It can get called a lot, so don't put any heavy computation in here!
