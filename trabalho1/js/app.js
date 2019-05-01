@@ -56,6 +56,8 @@ function createCamera() {
 function createControls() {
 
   controls = new THREE.OrbitControls( camera, container );
+  controls.minDistance = 10;
+  controls.maxDistance = 13;
 
 }
 
@@ -97,8 +99,6 @@ function createMaterial() {
 
   const textureLoader = new THREE.TextureLoader();
   const texture = textureLoader.load( materialInfo.bumpTex );
-  texture.encoding = THREE.sRGBEncoding;
-  texture.anisotropy = 16;
 
   uniforms.tex = { 
     type: "t",
