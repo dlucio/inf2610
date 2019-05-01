@@ -20,8 +20,6 @@ function init() {
   scene = new THREE.Scene();
   scene.background = new THREE.Color( 0x8FBCD4 );
 
-  loadImage();
-
   createCamera();
   createControls();
   createLights();
@@ -90,7 +88,6 @@ function createMaterial() {
   texture.encoding = THREE.sRGBEncoding;
   texture.anisotropy = 16;
 
-  // uniforms.tex = new THREE.Uniform(new THREE.Texture(texture));
   uniforms.tex = { 
     type: "t",
     value: texture 
@@ -99,16 +96,14 @@ function createMaterial() {
   // Tip from: https://github.com/mrdoob/three.js/issues/8016#issuecomment-194935980
   uniforms = THREE.UniformsUtils.merge([uniforms, THREE.UniformsLib['lights']]);
   uniforms.tex.value = texture;
-  
 
-  
   material = new THREE.ShaderMaterial({
     uniforms: uniforms,
     vertexShader: document.getElementById("vs").textContent.trim(),
     fragmentShader: document.getElementById("fs").textContent.trim(),
     lights: true,
-    // defines: { USE_MAP: '', STANDARD: ''},
   });
+
 }
 
 function createMeshes() {
@@ -125,7 +120,6 @@ function createMeshes() {
   mesh = new THREE.Mesh( geometry, material );
 
   scene.add( mesh );
-  console.log("MESH", mesh);
 
 }
 
@@ -187,47 +181,6 @@ function onWindowResize() {
 }
 
 window.addEventListener( 'resize', onWindowResize );
-
-function loadImage() {
-
-  const geometry = new THREE.BoxBufferGeometry(.9,.9,.9);
-
-  // Create a texture loader so we can load our image file
-  const loader = new THREE.TextureLoader();
-
-  // specify the url to the texture
-  const url = 'https://s3.amazonaws.com/duhaime/blog/tsne-webgl/assets/cat.jpg';
-
-  const textureLoader = new THREE.TextureLoader();
-
-  const texture = textureLoader.load( url );
-
-  texture.encoding = THREE.sRGBEncoding;
-  texture.anisotropy = 16;
-
-  const uniforms = {};
-  uniforms.tex = { 
-    type: "t",
-    value: texture 
-  }
-
-  // specify custom uniforms and attributes for shaders
-  // Uniform types: https://github.com/mrdoob/three.js/wiki/Uniforms-types
-  const material = new THREE.ShaderMaterial({  
-    uniforms: uniforms,
-    vertexShader: document.getElementById('vertex-shader').textContent,
-    fragmentShader: document.getElementById('fragment-shader').textContent
-  });
-
-  // Combine our image geometry and material into a mesh
-  const mesh1 = new THREE.Mesh(geometry, material);
-
-  // Set the position of the image mesh in the x,y,z dimensions
-  mesh1.position.set(-3,0,0)
-
-  // Add the image to the scene
-  scene.add(mesh1);
-}
 
 // call the init function to set everything up
 init();
