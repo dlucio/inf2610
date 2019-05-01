@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+
+    <title>INF2610 - Rendering de Tempo Real ( TEMPLATE )</title>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="UTF-8" />
+
+    <link rel="icon" href="https://discoverthreejs.com/favicon.ico" type="image/x-icon">
+
+    <link href="styles/main.css" rel="stylesheet" type="text/css">
+
+    <!--
+
+      Include the main three.js script.
+
+      The global variable THREE will be
+      available for use in any scripts
+      loaded after this one.
+
+    -->
+
+    <script src="js/vendor/three/three.js"></script>
+
+    <!--
+      
+      Include the WebGL, dat.gui, GLTFLoader and OrbitControls script.
+      
+      This must be included AFTER the three.js script as it
+      needs to use the global THREE variable
+      
+    -->
+    
+    <script src="js/vendor/three/WebGL.js"></script>
+    <script src="js/vendor/three/OrbitControls.js"></script>
+    <script src="js/vendor/three/dat.gui.min.js"></script>
+    <script src="js/vendor/three/GLTFLoader.js"></script>
+    <script src="js/vendor/three/MTLLoader.js"></script>
+    <script src="js/vendor/three/OBJLoader.js"></script>
+
+  </head>
+
+  <body>
+
+    <h1 class="title">INF2610 - Rendering de Tempo Real ( BUMP MAPPING ) </h1>
+
+    <div id="scene-container">
+      <!-- This div will hold our scene-->
+    </div>
+
+    <script id="vs" type="x-shader/x-vertex">
+      #version 300 es
+
+      struct PointLight {
+        vec3 color;
+        vec3 position;
+        float distance; 
+      };
+
+      /**
+        https://threejs.org/docs/index.html#api/en/renderers/webgl/WebGLProgram
+        Uniforms injetados pelo Three.js:
+        - position:
+        - uv:
+        - projectionMatrix:
+        - modelViewMatrix:
+      */
+
+      uniform PointLight pointLights[NUM_POINT_LIGHTS];
+
+      out vec4 color;
+      out vec2 vUv;
+      out vec3 dirLight;
+
+      void main() 
+      {
+        // Usando somente a primeira luz pontual
+        dirLight = position - pointLights[0].position;
+        vUv = uv;
+        color = vec4(pointLights[0].color, 1.0);
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+  </script>
+  <script id="fs" type="x-shader/x-fragment">
+     #version 300 es
+
+      precision highp float;
+      precision highp int;
+
+      in vec4 color;
+      in vec2 vUv;
+      in vec3 dirLight;
+      
+      uniform sampler2D tex;
+
+      out vec4 out_FragColor;
+
+      vec3 expand(vec3 v)
+      {
+        return 2.0 * (-0.5 + v);
+      }
+
+      void main() 
+      {
+        vec3 light = normalize(dirLight);
+
+        vec3 normalTex = texture2D(tex, vUv).xyz;
+        vec3 normal = expand(normalTex);
+
+        // luz difusa
+        float c = max( dot( normal, light ), 0.0 );
+        out_FragColor = vec4( c,c,c, 1.0 ) * color;
+        //out_FragColor = vec4( c,c,c, 1.0 );
+      }
+    </script>
+
+    <!--
+      Finally, include the script that
+      runs your three.js app.
+    -->
+
+    <script src="js/app.js"></script>
+
+  </body>
+
+</html>
