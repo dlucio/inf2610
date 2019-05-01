@@ -23,6 +23,7 @@
     -->
 
     <script src="js/vendor/three/three.js"></script>
+    <!-- <script src='https://cdnjs.cloudflare.com/ajax/libs/three.js/104/three.min.js'></script> -->
 
     
     <!--
@@ -61,7 +62,7 @@
       }
   </script>
   <script id="fs" type="x-shader/x-fragment">
-      #version 300 es
+     #version 300 es
 
       precision highp float;
       precision highp int;
@@ -69,17 +70,43 @@
       in vec4 color;
       in vec4 color_s;
       in vec2 vUv;
-      uniform sampler2D map;
+      uniform sampler2D tex;
       out vec4 out_FragColor;
 
       void main() {
-          out_FragColor = texture2D(map, vUv);
+          out_FragColor = texture2D(tex, vUv) * color;
           //out_FragColor = vec4(0.1, 0.5, 1.0, 1.0);
           #ifdef USE_MAP
             //out_FragColor = color + color_s;
           #endif
       }
     </script>
+
+    <script type='x-shader/x-vertex' id='vertex-shader'>      
+      #version 300 es
+
+      out vec2 vUv; // pass the uv coordinates of each pixel to the frag shader
+  
+      void main() {
+        vUv = uv;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    </script>
+  
+    <script type='x-shader/x-fragment' id='fragment-shader'>
+      #version 300 es
+
+      precision highp float; // set float precision (optional)
+      out vec4 out_FragColor;
+  
+      uniform sampler2D tex; // identify the texture as a uniform argument
+      in vec2 vUv; // identify the uv values as a varying attribute
+  
+      void main() {
+        out_FragColor = texture2D(tex, vUv) * vec4(1,0,1,1);
+      }
+    </script>
+  
 
     <!--
       Finally, include the script that
