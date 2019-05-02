@@ -22,7 +22,6 @@ function init() {
 
   scene = new THREE.Scene();
   scene.background = new THREE.Color( 0x8FBCD4 );
-  // scene.background = new THREE.Color( 0xFFFFFF );
 
   createCamera();
   createControls();
@@ -50,22 +49,22 @@ function createCamera() {
     100, // far clipping plane
   );
 
-  camera.position.set( 0, 0, 7.0 );
+  camera.position.set( 0, 0, 1.0 );
 
 }
 
 function createControls() {
 
   controls = new THREE.OrbitControls( camera, container );
-  controls.minDistance = 5;
-  controls.maxDistance = 13.5;
+  controls.minDistance = 1;
+  controls.maxDistance = 3.5;
 
 }
 
 function createLights() {
 
-  const pointLight = new THREE.PointLight(0xffffff, 1.0);
-  pointLight.position.set( 0, 0.0, 10.1 );
+  const pointLight = new THREE.PointLight(0xffffff, 1);
+  pointLight.position.set( 0.0, 10.0, 10.1 );
 
   const pointLightHelper = new THREE.PointLightHelper(pointLight);
 
@@ -88,18 +87,24 @@ function createMaterial() {
   }
 
   const textureLoader = new THREE.TextureLoader();
-  const texture = textureLoader.load( materialInfo.bumpTex );
+  
+  const bumpTex = textureLoader.load( materialInfo.bumpTex );
+  const diffuseTex = textureLoader.load( materialInfo.diffuseTex );
 
   uniforms.bumpTex = { 
     type: "t",
-    value: texture 
+    value: bumpTex 
+  } 
+
+  uniforms.diffuseTex = { 
+    type: "t",
+    value: diffuseTex 
   } 
 
   // Tip from: https://github.com/mrdoob/three.js/issues/8016#issuecomment-194935980
   uniforms = THREE.UniformsUtils.merge([uniforms, THREE.UniformsLib['lights']]);
-  uniforms.bumpTex.value = texture;
-  
-  console.log(uniforms);
+  uniforms.bumpTex.value = bumpTex;
+  uniforms.diffuseTex.value = diffuseTex;
   
 
   material = new THREE.ShaderMaterial({
@@ -125,6 +130,7 @@ function createRenderer() {
     canvas: canvas,
     context: context
   } );
+
   renderer.setSize( container.clientWidth, container.clientHeight );
 
   renderer.setPixelRatio( window.devicePixelRatio );
@@ -162,42 +168,7 @@ function createGui() {
   gui = new dat.GUI();
   const params = {
     // 'light color': spotLight.color.getHex(),
-    // intensity: spotLight.intensity,
-    // distance: spotLight.distance,
-    // angle: spotLight.angle,
-    // penumbra: spotLight.penumbra,
-    // decay: spotLight.decay
   };
-
-  // gui.addColor( params, 'light color' ).onChange( function ( val ) {
-  //   spotLight.color.setHex( val );
-  //   render();
-  // } );
-
-  // gui.add( params, 'intensity', 0, 2 ).onChange( function ( val ) {
-  //   spotLight.intensity = val;
-  //   render();
-  // } );
-
-  // gui.add( params, 'distance', 50, 200 ).onChange( function ( val ) {
-  //   spotLight.distance = val;
-  //   render();
-  // } );
-
-  // gui.add( params, 'angle', 0, Math.PI / 3 ).onChange( function ( val ) {
-  //   spotLight.angle = val;
-  //   render();
-  // } );
-
-  // gui.add( params, 'penumbra', 0, 1 ).onChange( function ( val ) {
-  //   spotLight.penumbra = val;
-  //   render();
-  // } );
-
-  // gui.add( params, 'decay', 1, 2 ).onChange( function ( val ) {
-  //   spotLight.decay = val;
-  //   render();
-  // } );
 
   gui.open();
 }
@@ -227,6 +198,8 @@ function loadModelAndMaterial() {
 
     materialInfo = {
       bumpTex: mtl.baseUrl + info.map_bump,
+      ambientTex: mtl.baseUrl + info.map_ka,
+      diffuseTex: mtl.baseUrl + info.map_kd,
       d: info.d,    // halo factor: dissolve = 1.0 - (N*v)(1.0-factor)
       ka: info.ka,  // ambient
       kd: info.kd,  // diffuse
@@ -237,8 +210,8 @@ function loadModelAndMaterial() {
 
     // load the first model. Each model is loaded asynchronously,
     // so don't make any assumption about which one will finish loading first
-    const golfballPosition = new THREE.Vector3( 0, 0, 0 );
-    objLoader.load( 'models/golfball/golfball.obj', obj => onObjLoad( obj, golfballPosition ), onProgress, onError );
+    const stonesPosition = new THREE.Vector3( -0.5, -0.5, 0 );
+    objLoader.load( 'models/stones/stones.obj', obj => onObjLoad( obj, stonesPosition ), onProgress, onError );
   }
 
   // the loader will report the loading progress to this function
@@ -248,7 +221,7 @@ function loadModelAndMaterial() {
   // them to to console
   const onError = ( errorMessage ) => { console.log( errorMessage ); };
 
-  mtlLoader.load( 'models/golfball/golfball.mtl', mtl => onMTLLoad( mtl ), onProgress, onError );
+  mtlLoader.load( 'models/stones/stones.mtl', mtl => onMTLLoad( mtl ), onProgress, onError );
 
 }
 
