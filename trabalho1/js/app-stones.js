@@ -49,14 +49,14 @@ function createCamera() {
     100, // far clipping plane
   );
 
-  camera.position.set( 0, 0, 1.0 );
+  camera.position.set( 0, 0, 0.4 );
 
 }
 
 function createControls() {
 
   controls = new THREE.OrbitControls( camera, container );
-  controls.minDistance = 1;
+  controls.minDistance = 0.3;
   controls.maxDistance = 3.5;
 
 }

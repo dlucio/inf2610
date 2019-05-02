@@ -116,7 +116,7 @@
         vec3 light = normalize(dirLight);        
 
         // obtain normal from normal map in range [0,1]
-        vec3 normalTex = texture2D(bumpTex, vUv).yxz;
+        vec3 normalTex = texture2D(bumpTex, vUv).xyz;
         //vec3 normal = expand(normalTex);
 
         // transform normal vector to range [-1,1]
