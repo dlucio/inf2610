@@ -64,7 +64,7 @@ function createControls() {
 function createLights() {
 
   const pointLight = new THREE.PointLight(0xffffff, 1);
-  pointLight.position.set( 0.0, 10.0, 10.1 );
+  pointLight.position.set( 0.0, 0.0, 10.1 );
 
   const pointLightHelper = new THREE.PointLightHelper(pointLight);
 
