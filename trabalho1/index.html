@@ -38,7 +38,9 @@
     <script src="js/vendor/three/dat.gui.min.js"></script>
     <script src="js/vendor/three/GLTFLoader.js"></script>
     <script src="js/vendor/three/MTLLoader.js"></script>
-    <script src="js/vendor/three/OBJLoader.js"></script>
+    <script src="js/vendor/three/LoaderSupport.js"></script>
+    <script src="js/vendor/three/OBJLoader2.js"></script>
+    <script src="js/vendor/three/BufferGeometryUtils.js"></script>
 
   </head>
 
@@ -71,6 +73,9 @@
 
       uniform PointLight pointLights[NUM_POINT_LIGHTS];
 
+      attribute vec4 tangent;
+      attribute vec4 bitangent;
+
       out vec4 color;
       out vec2 vUv;
       out vec3 lightPos;
@@ -78,8 +83,36 @@
       out vec3 halfVector;
       out vec3 fragPos;
 
+      out vec3 L;
+      out vec3 V;
+      out mat3 TBN;
+
       void main() 
       {
+
+        vec3 T = normalize(vec3(modelMatrix * vec4(tangent)));
+        vec3 B = normalize(vec3(modelMatrix * vec4(bitangent)));
+        vec3 N = normalize(vec3(modelMatrix * vec4(normal,    0.0)));
+        TBN = ( mat3(T, B, N) );
+
+        //------------------------------------------------------------
+        // Working with tangent
+        /*
+        vec3 surfaceNormal = (modelViewMatrix * vec4(normal,0.0)).xyz;
+        vec3 norm = normalize(surfaceNormal);
+
+        vec3 tang = normalize((modelViewMatrix * vec4(tangent, 0.0)).xyz);
+        vec3 bitang = normalize(cross(norm, tang));
+
+        mat3 toTangentSpace = mat3( tang, bitang, norm );
+
+        vec3 lightPosition = pointLights[0].position;
+        vec3 mvPosition = (modelViewMatrix * vec4(position,1.0)).xyz;
+        L =  toTangentSpace *  (lightPosition - mvPosition) ;
+        V =  toTangentSpace *  (- mvPosition);
+        */
+
+
         // Usando somente a primeira luz pontual
         lightPos = pointLights[0].position;
         dirLight = lightPos - position;
@@ -105,6 +138,10 @@
     in vec3 dirLight;
     in vec3 halfVector;
     in vec3 fragPos;
+
+    in vec3 L;
+    in vec3 V;
+    in mat3 TBN;
     
     uniform vec4 ka;
     uniform vec4 kd;
@@ -114,22 +151,39 @@
 
     out vec4 out_FragColor;
 
-    vec3 expand(vec3 v)
-    {
-      return 2.0 * (-0.5 + v);
-    }
-
     void main() 
     {
-      vec3 light = normalize(lightPos - fragPos);
-      light = normalize(dirLight);
-
+      
       // obtain normal from normal map in range [0,1]
       vec3 normalTex = texture2D(bumpTex, vUv).xyz;
-      //vec3 normal = expand(normalTex);
 
       // transform normal vector to range [-1,1]
       vec3 normal = normalize(-1.0 + 2.0*normalTex);
+
+      //--------------------------------------------------------
+
+      normal = normalize( TBN * normal );
+
+      //------------------------------------------------------------
+
+      vec4 normalMapValue = texture2D(bumpTex, vUv);
+
+      vec3 unitNormal = normalize(-1.0 + 2.0*normalMapValue).xyz;
+
+      vec3 unitVectorToCamera = normalize(V);
+      vec3 unitLightVector = normalize(L);
+
+      float nDotl = dot(unitNormal,unitLightVector);
+      float brightness = max(nDotl, 0.0);
+
+      vec4 totalDiffuse = (brightness * color);
+      //out_FragColor=  (ka + totalDiffuse) * kd ;
+
+
+      //--------------------------------------------------------
+
+      //vec3 light = normalize(lightPos - fragPos);
+      vec3 light = normalize(dirLight);
 
       // compute lighting
       float NdotL = dot( normal, light );
