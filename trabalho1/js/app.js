@@ -99,9 +99,6 @@ function createMaterial() {
   uniforms = THREE.UniformsUtils.merge([uniforms, THREE.UniformsLib['lights']]);
   uniforms.bumpTex.value = texture;
   
-  console.log(uniforms);
-  
-
   material = new THREE.ShaderMaterial({
     uniforms: uniforms,
     vertexShader: document.getElementById("vs").textContent.trim(),
@@ -303,14 +300,9 @@ function loadModelAndMaterial() {
     model.position.copy( position );
     model.material = material;
 
-    console.log("BEFORE MODEL", model, model.index);
-    // generateTangent(model.geometry);
-
     // https://github.com/mrdoob/three.js/issues/12402
     // https://threejs.org/docs/#examples/utils/BufferGeometryUtils
     THREE.BufferGeometryUtils.computeTangents( model.geometry );
-    console.log("AFTER MODEL", model);
-    
 
     scene.add( model );
 

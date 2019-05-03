@@ -26,7 +26,7 @@
 
     <!--
       
-      Include the WebGL, dat.gui, GLTFLoader and OrbitControls script.
+      Include all needed scripts.
       
       This must be included AFTER the three.js script as it
       needs to use the global THREE variable
@@ -63,7 +63,7 @@
 
       /**
         https://threejs.org/docs/index.html#api/en/renderers/webgl/WebGLProgram
-        Uniforms injetados pelo Three.js:
+        Uniforms injected by Three.js:
         - position:
         - uv:
         - projectionMatrix:
@@ -72,19 +72,14 @@
       */
 
       uniform PointLight pointLights[NUM_POINT_LIGHTS];
-
+      
+      // Tangent generated from model mesh
       attribute vec4 tangent;
-      //attribute vec4 bitangent;
-
+      
       out vec4 color;
       out vec2 vUv;
-      out vec3 lightPos;
       out vec3 dirLight;
       out vec3 halfVector;
-      out vec3 fragPos;
-
-      out vec3 L;
-      out vec3 V;
       out mat3 TBN;
 
       void main() 
@@ -98,15 +93,16 @@
         TBN = ( mat3(T, B, N) );
 
         // Usando somente a primeira luz pontual
-        lightPos = pointLights[0].position;
-        dirLight = lightPos - position;
+        dirLight = pointLights[0].position - position;
         
         halfVector = normalize( dirLight + cameraPosition );
         
-        fragPos = (modelMatrix * vec4(position, 1.0) ).xyz;
-        
+        // Just repassing the UV 
         vUv = uv;
+
+        // Using light color as default color
         color = vec4(pointLights[0].color, 1.0);
+
         gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
       }
   </script>
@@ -118,13 +114,8 @@
 
     in vec4 color;
     in vec2 vUv;
-    in vec3 lightPos;
     in vec3 dirLight;
     in vec3 halfVector;
-    in vec3 fragPos;
-
-    in vec3 L;
-    in vec3 V;
     in mat3 TBN;
     
     uniform vec4 ka;
@@ -144,11 +135,8 @@
       // transform normal vector to range [-1,1]
       vec3 normal = normalize(-1.0 + 2.0*normalTex);
 
-      //--------------------------------------------------------
-
+      // normal in tangent space
       normal = normalize( TBN * normal );
-
-      //--------------------------------------------------------
 
       vec3 light = normalize(dirLight);
 
