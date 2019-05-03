@@ -299,7 +299,7 @@ function loadModelAndMaterial() {
 
     createMaterial();
     
-    model = obj.children[0];
+    model = obj.detail.loaderRootNode.children[0];
     model.position.copy( position );
     model.material = material;
 
