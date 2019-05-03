@@ -49,7 +49,7 @@ function createCamera() {
     100, // far clipping plane
   );
 
-  camera.position.set( 0, 0, 0.4 );
+  camera.position.set( 0, 0, 1.5 );
 
 }
 
@@ -176,7 +176,9 @@ function createGui() {
 //
 function loadModelAndMaterial() {
 
-  const objLoader = new THREE.OBJLoader();
+  // Load the model and generate its indices
+  const objLoader = new THREE.OBJLoader2();
+  objLoader.setUseIndices(true);
 
   // A reusable function to set up the models. We're passing in a position parameter
   // so that they can be individually placed around the scene
@@ -184,9 +186,13 @@ function loadModelAndMaterial() {
 
     createMaterial();
     
-    model = obj.children[0];
+    model = obj.detail.loaderRootNode.children[0];
     model.position.copy( position );
     model.material = material;
+
+    // https://github.com/mrdoob/three.js/issues/12402
+    // https://threejs.org/docs/#examples/utils/BufferGeometryUtils
+    THREE.BufferGeometryUtils.computeTangents( model.geometry );
 
     scene.add( model );
 

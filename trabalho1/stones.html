@@ -38,7 +38,9 @@
     <script src="js/vendor/three/dat.gui.min.js"></script>
     <script src="js/vendor/three/GLTFLoader.js"></script>
     <script src="js/vendor/three/MTLLoader.js"></script>
-    <script src="js/vendor/three/OBJLoader.js"></script>
+    <script src="js/vendor/three/LoaderSupport.js"></script>
+    <script src="js/vendor/three/OBJLoader2.js"></script>
+    <script src="js/vendor/three/BufferGeometryUtils.js"></script>
 
   </head>
 
@@ -71,18 +73,36 @@
 
       uniform PointLight pointLights[NUM_POINT_LIGHTS];
 
+      // Tangent generated from model mesh
+      attribute vec4 tangent;
+
       out vec4 color;
       out vec2 vUv;
       out vec3 dirLight;
       out vec3 halfVector;
+      out mat3 TBN;
 
       void main() 
       {
+
+        vec4 bitangent = normalize( vec4( cross(normal, tangent.xyz), 0.0 ) );
+
+        vec3 T = normalize(vec3(modelMatrix * tangent));
+        vec3 B = normalize(vec3(modelMatrix * bitangent));
+        vec3 N = normalize(vec3(modelMatrix * vec4(normal,    0.0)));
+        TBN = ( mat3(T, B, N) );
+
         // Usando somente a primeira luz pontual
         dirLight = pointLights[0].position - position;
+        
         halfVector = normalize( dirLight + cameraPosition );
+        
+        // Just repassing the UV 
         vUv = uv;
+
+        // Using light color as default color
         color = vec4(pointLights[0].color, 1.0);
+
         gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
       }
   </script>
@@ -96,6 +116,7 @@
       in vec2 vUv;
       in vec3 dirLight;
       in vec3 halfVector;
+      in mat3 TBN;
       
       uniform vec4 ka;
       uniform vec4 kd;
@@ -105,22 +126,19 @@
       uniform sampler2D diffuseTex;
 
       out vec4 out_FragColor;
-
-      vec3 expand(vec3 v)
-      {
-        return 2.0 * (-0.5 + v);
-      }
-
+      
       void main() 
       {
-        vec3 light = normalize(dirLight);        
-
         // obtain normal from normal map in range [0,1]
         vec3 normalTex = texture2D(bumpTex, vUv).xyz;
-        //vec3 normal = expand(normalTex);
 
         // transform normal vector to range [-1,1]
         vec3 normal = normalize(-1.0 + 2.0*normalTex);
+
+        // normal in tangent space
+        normal = normalize( TBN * normal );
+
+        vec3 light = normalize(dirLight);
 
         // compute lighting
         float NdotL = dot( normal, light );
@@ -136,7 +154,6 @@
         vec4 diffuse = texture2D(diffuseTex, vUv) * diff;
 
         // final color
-        float c = max( dot( normal, light ), 0.0 );
         out_FragColor = ka + diffuse + ks*spec;
       }
     </script>

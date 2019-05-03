@@ -50,7 +50,7 @@ function createCamera() {
     100, // far clipping plane
   );
 
-  camera.position.set( 0, 0, 7.0 );
+  camera.position.set( 0, 0, 12.0 );
 
 }
 
@@ -65,7 +65,7 @@ function createControls() {
 function createLights() {
 
   const pointLight = new THREE.PointLight(0xffffff, 1.0);
-  pointLight.position.set( 0, 0.0, 10.1 );
+  pointLight.position.set( 0, 0.0, 50.1 );
 
   const pointLightHelper = new THREE.PointLightHelper(pointLight);
 
@@ -200,93 +200,10 @@ function createGui() {
   gui.open();
 }
 
-function generateTangent(bufferGeometry) {
-
-  var positionAttributes = bufferGeometry.getAttribute('position');
-  var uvAttributes = bufferGeometry.getAttribute('uv');
-
-  var realVertices = [];
-  var realUvs = [];
-
-  for (var i = 0; i < positionAttributes.array.length; i += 3) {
-    realVertices.push(new THREE.Vector3(positionAttributes.array[i + 0], positionAttributes.array[i + 1], positionAttributes.array[i + 2]));
-  }
-
-  for (var i = 0; i < uvAttributes.array.length; i += 2) {
-    realUvs.push(new THREE.Vector2(uvAttributes.array[i], uvAttributes.array[i + 1]));
-  }
-
-  var tangents = new Float32Array(positionAttributes.array.length);
-  var bitangents = new Float32Array(positionAttributes.array.length);
-
-
-  var tangArray = [];
-  var bitangentArray = [];
-
-  for (var i = 0; i < realVertices.length; i += 3) {
-    var v0 = realVertices[i + 0];
-    var v1 = realVertices[i + 1];
-    var v2 = realVertices[i + 2];
-
-    var uv0 = realUvs[i + 0];
-    var uv1 = realUvs[i + 1];
-    var uv2 = realUvs[i + 2];
-
-
-    var deltaPos1 = v1.sub(v0);
-    var deltaPos2 = v2.sub(v0);
-
-    var deltaUV1 = uv1.sub(uv0);
-    var deltaUV2 = uv2.sub(uv0);
-
-    var r = 1.0 / (deltaUV1.x * deltaUV2.y - deltaUV1.y * deltaUV2.x);
-    var tangent = deltaPos1.multiplyScalar(deltaUV2.y).sub(deltaPos2.multiplyScalar(deltaUV1.y)).multiplyScalar(r); //p1 * uv2.y - p2 * uv1.y
-    var bitangent = deltaPos2.multiplyScalar(deltaUV2.x).sub(deltaPos1.multiplyScalar(deltaUV2.x)).multiplyScalar(r);
-
-    tangArray.push(tangent.x);
-    tangArray.push(tangent.y);
-    tangArray.push(tangent.z);
-    tangArray.push(0.0);
-
-    tangArray.push(tangent.x);
-    tangArray.push(tangent.y);
-    tangArray.push(tangent.z);
-    tangArray.push(0.0);
-
-    tangArray.push(tangent.x);
-    tangArray.push(tangent.y);
-    tangArray.push(tangent.z);
-    tangArray.push(0.0);
-
-    bitangentArray.push(bitangent.x);
-    bitangentArray.push(bitangent.y);
-    bitangentArray.push(bitangent.z);
-    bitangentArray.push(0.0);
-
-    bitangentArray.push(bitangent.x);
-    bitangentArray.push(bitangent.y);
-    bitangentArray.push(bitangent.z);
-    bitangentArray.push(0.0);
-
-    bitangentArray.push(bitangent.x);
-    bitangentArray.push(bitangent.y);
-    bitangentArray.push(bitangent.z);
-    bitangentArray.push(0.0);
-  }
-
-  for (var i = 0; i < bitangentArray.length; i++) {
-    tangents[i] = tangArray[i];
-    bitangents[i] = bitangentArray[i];
-  }
-
-
-  bufferGeometry.addAttribute('tangent', new THREE.BufferAttribute(tangents, 4));
-  bufferGeometry.addAttribute( 'bitangent',  new THREE.BufferAttribute( bitangents, 4 ) );
-}
-
 //
 function loadModelAndMaterial() {
 
+  // Load the model and generate its indices
   const objLoader = new THREE.OBJLoader2();
   objLoader.setUseIndices(true);
 

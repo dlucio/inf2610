@@ -150,9 +150,10 @@
         //spec = pow( max( dot( normal, halfv ), 0.0 ), shi );
       }
       
-      // final color
-      //out_FragColor = ka + kd*diff + ks*spec;
+      // diffuse color from light color
       vec4 diffuse = diff * color;
+
+      // final color      
       out_FragColor = (ka + diffuse) * kd + ks*spec;
 
     }
