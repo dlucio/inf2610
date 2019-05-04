@@ -153,8 +153,8 @@
       // diffuse color from light color
       vec4 diffuse = diff * color;
 
-      // final color      
-      out_FragColor = (ka + diffuse) * kd + ks*spec;
+      // final color
+      out_FragColor = ka + kd*diffuse + ks*spec;
 
     }
     </script>
