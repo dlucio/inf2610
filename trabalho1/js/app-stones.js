@@ -16,12 +16,27 @@ let material;
 let materialInfo;
 let model;
 
+// Injecting text code inside the element
+function injectTextIntoPage() {
+
+  let tvs = document.getElementById("vs").textContent;
+  let vsContainer = document.getElementById("vertex-shader-code");
+  vsContainer.textContent = tvs;
+
+  let tfs = document.getElementById("vs").textContent;
+  let fsContainer = document.getElementById("fragment-shader-code");
+  fsContainer.textContent = tfs;
+  
+}
+
 function init() {
+
+  injectTextIntoPage();
 
   container = document.querySelector( '#scene-container' );
 
   scene = new THREE.Scene();
-  scene.background = new THREE.Color( 0x8FBCD4 );
+  scene.background = new THREE.Color( 0xFFFFFF );
 
   createCamera();
   createControls();

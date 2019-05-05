@@ -16,13 +16,29 @@ let material;
 let materialInfo;
 let model;
 
+// Injecting text code inside the element
+function injectTextIntoPage() {
+
+  let tvs = document.getElementById("vs").textContent;
+  let vsContainer = document.getElementById("vertex-shader-code");
+  vsContainer.textContent = tvs;
+
+  let tfs = document.getElementById("vs").textContent;
+  let fsContainer = document.getElementById("fragment-shader-code");
+  fsContainer.textContent = tfs;
+
+}
+
+
 function init() {
+
+  injectTextIntoPage();
 
   container = document.querySelector( '#scene-container' );
 
   scene = new THREE.Scene();
-  scene.background = new THREE.Color( 0x8FBCD4 );
-  // scene.background = new THREE.Color( 0xFFFFFF );
+  // scene.background = new THREE.Color( 0x8FBCD4 );
+  scene.background = new THREE.Color( 0xFFFFFF );
 
   createCamera();
   createControls();
@@ -157,15 +173,15 @@ function render() {
 // 
 function createGui() {
   
-  gui = new dat.GUI();
-  const params = {
+  // gui = new dat.GUI();
+  // const params = {
     // 'light color': spotLight.color.getHex(),
     // intensity: spotLight.intensity,
     // distance: spotLight.distance,
     // angle: spotLight.angle,
     // penumbra: spotLight.penumbra,
     // decay: spotLight.decay
-  };
+  // };
 
   // gui.addColor( params, 'light color' ).onChange( function ( val ) {
   //   spotLight.color.setHex( val );
@@ -197,7 +213,7 @@ function createGui() {
   //   render();
   // } );
 
-  gui.open();
+  // gui.open();
 }
 
 //

@@ -3,12 +3,16 @@
 
   <head>
 
-    <title>INF2610 - Rendering em Tempo Real ( TEMPLATE )</title>
+    <title>INF2610 - Rendering em Tempo Real : Bump Mapping </title>
 
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta charset="UTF-8" />
 
     <link rel="icon" href="https://discoverthreejs.com/favicon.ico" type="image/x-icon">
+
+    <link rel="stylesheet" href="js/vendor/highlight/styles/github-gist.css">
+    <script src="js/vendor/highlight/highlight.pack.js"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
 
     <link href="styles/main.css" rel="stylesheet" type="text/css">
 
@@ -46,10 +50,35 @@
 
   <body>
 
-    <h1 class="title">INF2610 - Rendering em Tempo Real ( BUMP MAPPING ) </h1>
+    <div class="wrapper">
 
-    <div id="scene-container">
-      <!-- This div will hold our scene-->
+      <header class="header">
+          <h1 class="title">INF2610 - Rendering em Tempo Real : Bump Mapping </h1>
+      </header>
+      <article class="main">
+        <div id="scene-container">
+          <!-- This div will hold our scene-->
+        </div>
+      </article>
+      <aside class="aside aside-1">
+          <h2 class="title">Vertex Shader</h2>
+        <pre>
+          <code class="glsl" id="vertex-shader-code">
+            VERTEX SHADER    
+          </code>
+        </pre>
+
+      </aside>
+      <aside class="aside aside-2">
+        <h2 class="title">Framgment Shader</h2>
+        <pre>
+          <code class="glsl" id="fragment-shader-code">
+            FRAGMENT SHADER
+          </code>
+        </pre>
+      </aside>
+      <footer class="footer"></footer>
+
     </div>
 
     <script id="vs" type="x-shader/x-vertex">
