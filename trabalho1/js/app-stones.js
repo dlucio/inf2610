@@ -23,7 +23,7 @@ function injectTextIntoPage() {
   let vsContainer = document.getElementById("vertex-shader-code");
   vsContainer.textContent = tvs;
 
-  let tfs = document.getElementById("vs").textContent;
+  let tfs = document.getElementById("fs").textContent;
   let fsContainer = document.getElementById("fragment-shader-code");
   fsContainer.textContent = tfs;
   
@@ -180,12 +180,12 @@ function render() {
 // 
 function createGui() {
   
-  gui = new dat.GUI();
-  const params = {
-    // 'light color': spotLight.color.getHex(),
-  };
+  // gui = new dat.GUI();
+  // const params = {
+  //   // 'light color': spotLight.color.getHex(),
+  // };
 
-  gui.open();
+  // gui.open();
 }
 
 //
