@@ -54,7 +54,8 @@
 
           <header class="header">
               <h1 class="title">Bump Mapping: Golf Ball <small> <sup>2</sup> </small></h1>
-              <h2 class="title">INF2610 - Rendering em Tempo Real</h2>
+              <h2 class="title">Using TBN in vertex shader</h2>
+              <!-- <h3 class="title">INF2610 - Rendering em Tempo Real</h3> -->
           </header>
           <article class="main">
             <div id="scene-container">
@@ -71,14 +72,16 @@
     
           </aside>
           <aside class="aside aside-2">
-            <h2 class="title">Framgment Shader</h2>
+            <h2 class="title">Fragment Shader</h2>
             <pre>
               <code class="glsl" id="fragment-shader-code">
                 FRAGMENT SHADER
               </code>
             </pre>
           </aside>
-          <footer class="footer"></footer>
+          <footer class="footer">
+              <h4 class="title">INF2610 - Rendering em Tempo Real</h4>
+          </footer>
     
       </div>
     
@@ -97,6 +100,7 @@
         - position: vertex position
         - uv: texture coordinates
         - projectionMatrix: project matrix
+        - normalMatrix: normal matrix
         - modelViewMatrix: model view matrix
         - cameraPosition: camera position
       */
@@ -191,7 +195,7 @@
       out_FragColor = ka + kd*diffuse + ks*spec;
 
     }
-    </script>
+  </script>
 
     <!--
       Finally, include the script that
