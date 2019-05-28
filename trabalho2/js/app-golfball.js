@@ -10,6 +10,7 @@ let container;
 let camera;
 let controls;
 let renderer;
+let renderTarget;
 let scene;
 let gui;
 let material;
@@ -147,6 +148,11 @@ function createRenderer() {
   renderer.gammaOutput = true;
 
   renderer.physicallyCorrectLights = true;
+
+  // Create Multi Render Target
+  const width = 512, height = 512;
+  const attachmentNums = 2;
+  renderTarget = new THREE.WebGLMultiRendererTarget(width, height, attachmentNums);
 
   container.appendChild( renderer.domElement );
 
