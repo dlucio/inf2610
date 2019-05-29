@@ -8,10 +8,12 @@
 // these need to be accessed inside more than one function so we'll declare them first
 let container;
 let camera;
+let postCamera;
 let controls;
 let renderer;
 let renderTarget;
 let scene;
+let postScene;
 let gui;
 let material;
 let materialInfo;
@@ -56,9 +58,11 @@ function init() {
   container = document.querySelector( '#scene-container' );
 
   scene = new THREE.Scene();
-  // scene.background = new THREE.Color( 0x8FBCD4 );
-  scene.background = new THREE.Color( 0xFFFFFF );
+  scene.background = new THREE.Color( 0x8FBCD4 );
+  // scene.background = new THREE.Color( 0xFFFFFF );
   // scene.background = new THREE.Color( 0x000000 );
+  postScene = new THREE.Scene();
+  postScene.background = new THREE.Color( 0xFF0000 );
 
   createCamera();
   createControls();
@@ -85,8 +89,9 @@ function createCamera() {
     0.1, // near clipping plane
     100, // far clipping plane
   );
-
   camera.position.set( 0, 0, 12.0 );
+
+  postCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
 
 }
 
@@ -147,6 +152,7 @@ function createMaterial() {
 
   const textureLoader = new THREE.TextureLoader();
   const texture = textureLoader.load( materialInfo.bumpTex );
+  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
 
   uniforms.bumpTex = { 
     type: "t",
@@ -159,11 +165,48 @@ function createMaterial() {
   
   material = new THREE.ShaderMaterial({
     uniforms: uniforms,
-    vertexShader: document.getElementById("vs").textContent.trim(),
-    fragmentShader: document.getElementById("fs").textContent.trim(),
+    // vertexShader: document.getElementById("vs").textContent.trim(),
+    // fragmentShader: document.getElementById("fs").textContent.trim(),
+    vertexShader: document.getElementById("gbuffer-vert").textContent.trim(),
+    fragmentShader: document.getElementById("gbuffer-frag").textContent.trim(),
     lights: true,
     vertexTangents: true, // https://threejs.org/docs/#api/en/materials/Material.vertexTangents
   });
+
+
+  // MRT
+  let mrtUniforms = {
+    tDiffuse: {
+      value: renderTarget.textures[0]
+    },
+    tNormal: {
+      value: renderTarget.textures[1]
+    },
+    tPosition: {
+      value: renderTarget.textures[2]
+    },
+    tDepth: {
+      value: renderTarget.depthTexture 
+    },
+  }
+
+  // Tip from: https://github.com/mrdoob/three.js/issues/8016#issuecomment-194935980
+  mrtUniforms = THREE.UniformsUtils.merge([mrtUniforms, THREE.UniformsLib['lights']]);
+  mrtUniforms.tDiffuse.value = renderTarget.textures[0];
+  mrtUniforms.tNormal.value = renderTarget.textures[1];
+  mrtUniforms.tPosition.value = renderTarget.textures[2];
+  mrtUniforms.tDepth.value = renderTarget.depthTexture;
+  
+  // FIXME: create a new variable called postMaterial
+  postScene.add(new THREE.Mesh(
+    new THREE.PlaneGeometry(2, 2),
+    new THREE.ShaderMaterial({
+      vertexShader: document.getElementById('render-vert').textContent.trim(),
+      fragmentShader: document.getElementById('render-frag').textContent.trim(),
+      uniforms: mrtUniforms,
+      lights: true
+    })
+  ));
 
 }
 
@@ -189,6 +232,28 @@ function createRenderer() {
   renderer.gammaOutput = true;
 
   renderer.physicallyCorrectLights = true;
+
+  // Create a multi render target with Float buffers
+  renderTarget = new THREE.WebGLMultiRenderTarget(
+    // window.innerWidth * window.devicePixelRatio,
+    // window.innerHeight * window.devicePixelRatio,
+    container.clientWidth, container.clientHeight,
+    3);
+  renderTarget.texture.format = THREE.RGBAFormat;
+  renderTarget.texture.minFilter = THREE.NearestFilter;
+  renderTarget.texture.magFilter = THREE.NearestFilter;
+  renderTarget.texture.type = THREE.FloatType;
+  renderTarget.texture.generateMipmaps = false;
+  renderTarget.stencilBuffer = false;
+  renderTarget.depthBuffer = true;
+  renderTarget.depthTexture = new THREE.DepthTexture();
+  renderTarget.depthTexture.format = THREE.DepthFormat;
+  renderTarget.depthTexture.type = THREE.FloatType;
+
+  // Name G-Buffer attachments for debugging
+  renderTarget.textures[0].name = 'diffuse';
+  renderTarget.textures[1].name = 'normal';
+  renderTarget.textures[2].name = 'position';
 
   container.appendChild( renderer.domElement );
 
@@ -218,7 +283,19 @@ function update() {
 // render, or 'draw a still image', of the scene
 function render() {
 
-  renderer.render( scene, camera );
+  if (0) {
+    renderer.render( scene, camera );
+  } else {
+    // render scene into target
+    renderer.setRenderTarget(renderTarget);
+    renderer.render(scene, camera);
+  
+    // render post FX
+    renderer.setRenderTarget(null);
+    renderer.render(postScene, postCamera);
+  }
+
+  
 
 }
 
@@ -337,6 +414,7 @@ function onWindowResize() {
 
   // update the size of the renderer AND the canvas
   renderer.setSize( container.clientWidth, container.clientHeight );
+  renderTarget.setSize( container.clientWidth, container.clientHeight );
 
 }
 

@@ -51,40 +51,133 @@
 
   <body>
 
-      <div class="wrapper">
+    <div class="wrapper">
 
-          <header class="header">
-              <h1 class="title">Deferred Shading: Golf Ball</h1>
-              <!-- <h2 class="title">Using TBN in vertex shader</h2> -->
-          </header>
-          <article class="main">
-            <div id="scene-container">
-              <!-- This div will hold our scene-->
-            </div>
-          </article>
-          <aside class="aside aside-1">
-              <h2 class="title">Vertex Shader</h2>
-            <pre>
-              <code class="glsl" id="vertex-shader-code">
-                VERTEX SHADER    
-              </code>
-            </pre>
+        <header class="header">
+            <h1 class="title">Deferred Shading: Golf Ball</h1>
+            <!-- <h2 class="title">Using TBN in vertex shader</h2> -->
+        </header>
+        <article class="main">
+          <div id="scene-container">
+            <!-- This div will hold our scene-->
+          </div>
+        </article>
+        <aside class="aside aside-1">
+            <h2 class="title">Vertex Shader</h2>
+          <pre>
+            <code class="glsl" id="vertex-shader-code">
+              VERTEX SHADER    
+            </code>
+          </pre>
+  
+        </aside>
+        <aside class="aside aside-2">
+          <h2 class="title">Fragment Shader</h2>
+          <pre>
+            <code class="glsl" id="fragment-shader-code">
+              FRAGMENT SHADER
+            </code>
+          </pre>
+        </aside>
+        <footer class="footer">
+            <h4 class="title">INF2610 - Rendering em Tempo Real</h4>
+        </footer>
+  
+    </div>
     
-          </aside>
-          <aside class="aside aside-2">
-            <h2 class="title">Fragment Shader</h2>
-            <pre>
-              <code class="glsl" id="fragment-shader-code">
-                FRAGMENT SHADER
-              </code>
-            </pre>
-          </aside>
-          <footer class="footer">
-              <h4 class="title">INF2610 - Rendering em Tempo Real</h4>
-          </footer>
-    
-      </div>
-    
+    <!-- Write to G-Buffer -->
+    <script id="gbuffer-vert" type="x-shader/x-vertex">
+      #version 300 es
+
+      out vec3 vNormal;
+      out vec2 vUv;
+      out vec4 vPosition;
+
+      void main() {
+
+        vUv = uv;
+
+        vec3 transformedNormal = normalMatrix * normal;
+        vNormal = normalize( transformedNormal );
+
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        vPosition = gl_Position;
+
+      }
+    </script>
+    <script id="gbuffer-frag" type="x-shader/x-fragment">
+      #version 300 es
+
+      layout(location = 0) out vec4 gColor;
+      layout(location = 1) out vec4 gNormal;
+      layout(location = 2) out vec4 gPosition;
+
+      uniform sampler2D bumpTex;
+
+      in vec3 vNormal;
+      in vec2 vUv;
+      in vec4 vPosition;
+
+      void main() {
+
+        // write color to G-Buffer
+        gColor = vec4(1.0, 1.0, 0.0, 1.0); //texture( bumpTex, vUv );
+        
+        // write normals to G-Buffer
+        gNormal = vec4( normalize( vNormal ), 1.0 );
+        
+        // write position to G-Buffer
+        gPosition = vPosition;
+      }
+    </script>
+
+    <!-- Read G-Buffer and render to screen -->
+    <script id="render-vert" type="x-shader/x-vertex">
+    #version 300 es
+
+      out vec2 vUv;
+
+      void main() {
+
+        vUv = uv;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+
+      }
+    </script>
+    <script id="render-frag" type="x-shader/x-fragment">
+      #version 300 es
+
+      layout(location = 0) out vec4 pc_FragColor;
+
+      in vec2 vUv;
+
+      uniform sampler2D tDiffuse;
+      uniform sampler2D tNormal;
+      uniform sampler2D tPosition;
+      uniform sampler2D tDepth;
+
+      void main() {
+
+        vec3 diffuse = texture( tDiffuse, vUv ).rgb;
+        vec3 normal = texture( tNormal, vUv ).rgb;
+
+        vec4 depth = texture( tDepth, vUv ).rgba;
+        vec4 position = texture( tPosition, vUv ).rgba;
+
+        pc_FragColor.rgb = mix( diffuse, normal, step( 0.5, vUv.x ) );
+        pc_FragColor.a = 1.0;
+        
+        //pc_FragColor.rgb = diffuse.rgb;
+        //pc_FragColor = position.rgba;
+        //pc_FragColor = depth.rgba;
+        //pc_FragColor.rgb = vec3(depth.r, depth.r, depth.r);
+        //pc_FragColor = vec4(depth.r, depth.r, depth.r, 1.0);
+        
+        //pc_FragColor.rgb = vec3(0.0, 1.0, 0.0);
+
+      }
+    </script>
+
     <script id="vs" type="x-shader/x-vertex">
       #version 300 es
 
