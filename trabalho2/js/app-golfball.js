@@ -100,14 +100,16 @@ function createControls() {
 
 function createLights() {
 
+  const pi = Math.PI;
   const numLights = 4;
   lights = new Array();
   for (let index = 0; index < numLights; index++) {
 
     // calculate slightly random offsets
-    const x = getRandomArbitrary(-10.0, 10.0);
-    const y = getRandomArbitrary(-10.0, 10.0);
-    const z = getRandomArbitrary(-35.0, 35.0);
+    const time = Date.now() * 0.0005;
+    const x = Math.sin(getRandomArbitrary(-pi, pi)) * getRandomArbitrary(-50.0, 50.0);
+    const y = Math.cos(getRandomArbitrary(-pi, pi)) * getRandomArbitrary(-50.0, 50.0);
+    const z = Math.cos(getRandomArbitrary(-pi, pi)) * getRandomArbitrary(-50.0, 50.0);
 
     // also calculate random color
     const r = getRandomArbitrary(0.5, 1.0); // between 0.5 and 1.0
@@ -117,7 +119,8 @@ function createLights() {
     const color = new THREE.Color(r,g,b);
 
     const pointLight = new THREE.PointLight(color, 1.0);
-    pointLight.position.set( x, y, z );
+    pointLight.position.set( x, y, z);
+    pointLight.startPos = { x:x, y:y, z:z }
 
     const pointLightHelper = new THREE.PointLightHelper(pointLight);
     
@@ -202,45 +205,11 @@ function update() {
   }
 
   const time = Date.now() * 0.0005;
-  lights[0].position.x = Math.sin(time * 0.7) * 30;
-  lights[0].position.y = Math.cos(time * 0.5) * 40;
-  lights[0].position.z = Math.cos(time * 0.3) * 30;
-  
   lights.forEach(light => {
     
-    
-    // light.position.x = Math.sin(time * 0.7) * 30;
-    // light.position.y = Math.cos(time * 0.5) * 40;
-    // light.position.z = Math.cos(time * 0.3) * 30;
-    // const key = getRandomIntInclusive(1,4);
-    // switch (key) {
-    //   case 1:
-    //     light.position.x = Math.sin(time * 0.7) * 30;
-    //     light.position.y = Math.cos(time * 0.5) * 40;
-    //     light.position.z = Math.cos(time * 0.3) * 30;
-    //     break;
-
-    //   case 2:
-    //     light.position.x = Math.cos(time * 0.3) * 30;
-    //     light.position.y = Math.sin(time * 0.5) * 40;
-    //     light.position.z = Math.sin(time * 0.7) * 30;
-    //     break;
-
-    //   case 3:
-    //     light.position.x = Math.sin(time * 0.7) * 30;
-    //     light.position.y = Math.cos(time * 0.3) * 40;
-    //     light.position.z = Math.sin(time * 0.5) * 30;
-    //     break;
-
-    //   case 4:
-    //     light.position.x = Math.sin(time * 0.3) * 30;
-    //     light.position.y = Math.cos(time * 0.7) * 40;
-    //     light.position.z = Math.sin(time * 0.5) * 30;
-    //     break;
-    
-    //   default:
-    //     break;
-    // }
+    light.position.x = Math.sin(time * 0.7) * light.startPos.x;
+    light.position.y = Math.cos(time * 0.5) * light.startPos.y;
+    light.position.z = Math.cos(time * 0.4) * light.startPos.z;
 
   });
 

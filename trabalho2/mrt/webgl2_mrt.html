@@ -118,8 +118,10 @@
           pc_FragColor.rgb = mix( diffuse, normal, step( 0.5, vUv.x ) );
           pc_FragColor.a = 1.0;
           
-          pc_FragColor = position.rgba;
+          //pc_FragColor = position.rgba;
           //pc_FragColor = depth.rgba;
+          //pc_FragColor.rgb = vec3(depth.r, depth.r, depth.r);
+          pc_FragColor = vec4(depth.r, depth.r, depth.r, 1.0);
 
         }
     </script>
