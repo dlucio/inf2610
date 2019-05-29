@@ -16,6 +16,8 @@ let gui;
 let material;
 let materialInfo;
 let model;
+let lights;
+let clock;
 
 // Injecting text code inside the element
 function injectTextIntoPage() {
@@ -30,16 +32,33 @@ function injectTextIntoPage() {
 
 }
 
+// Next random functions come from:
+// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math/random
+
+// Getting a random number between two_values
+function getRandomArbitrary(min, max) {
+  return Math.random() * (max - min) + min;
+}
+
+// Getting a random integer between two values, inclusive
+// The maximum is inclusive and the minimum is inclusive 
+function getRandomIntInclusive(min, max) {
+  min = Math.ceil(min);
+  max = Math.floor(max);
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
 
 function init() {
 
   injectTextIntoPage();
+  clock = new THREE.Clock();
 
   container = document.querySelector( '#scene-container' );
 
   scene = new THREE.Scene();
   // scene.background = new THREE.Color( 0x8FBCD4 );
   scene.background = new THREE.Color( 0xFFFFFF );
+  // scene.background = new THREE.Color( 0x000000 );
 
   createCamera();
   createControls();
@@ -81,12 +100,31 @@ function createControls() {
 
 function createLights() {
 
-  const pointLight = new THREE.PointLight(0xffffff, 1.0);
-  pointLight.position.set( 0, 0.0, 50.1 );
+  const numLights = 4;
+  lights = new Array();
+  for (let index = 0; index < numLights; index++) {
 
-  const pointLightHelper = new THREE.PointLightHelper(pointLight);
+    // calculate slightly random offsets
+    const x = getRandomArbitrary(-10.0, 10.0);
+    const y = getRandomArbitrary(-10.0, 10.0);
+    const z = getRandomArbitrary(-35.0, 35.0);
 
-  scene.add( pointLight, pointLightHelper );
+    // also calculate random color
+    const r = getRandomArbitrary(0.5, 1.0); // between 0.5 and 1.0
+    const g = getRandomArbitrary(0.5, 1.0); // between 0.5 and 1.0
+    const b = getRandomArbitrary(0.5, 1.0); // between 0.5 and 1.0
+
+    const color = new THREE.Color(r,g,b);
+
+    const pointLight = new THREE.PointLight(color, 1.0);
+    pointLight.position.set( x, y, z );
+
+    const pointLightHelper = new THREE.PointLightHelper(pointLight);
+    
+    lights.push(pointLight);
+    scene.add( pointLight, pointLightHelper );
+    
+  }
 
 }
 
@@ -100,7 +138,7 @@ function createMaterial() {
   uniforms.ks = new THREE.Uniform(new THREE.Vector4(mi.ks[0], mi.ks[1], mi.ks[2], 1.0));
 
   uniforms.shi = {
-    type: 'float',
+    type: 'const',
     value: mi.ns/0.4 // FIXME: Colocar na GUI
   }
 
@@ -149,11 +187,6 @@ function createRenderer() {
 
   renderer.physicallyCorrectLights = true;
 
-  // Create Multi Render Target
-  const width = 512, height = 512;
-  const attachmentNums = 2;
-  renderTarget = new THREE.WebGLMultiRendererTarget(width, height, attachmentNums);
-
   container.appendChild( renderer.domElement );
 
 }
@@ -167,6 +200,50 @@ function update() {
   if (typeof(model) !== 'undefined') {
     // model.rotation.y += 0.01;
   }
+
+  const time = Date.now() * 0.0005;
+  lights[0].position.x = Math.sin(time * 0.7) * 30;
+  lights[0].position.y = Math.cos(time * 0.5) * 40;
+  lights[0].position.z = Math.cos(time * 0.3) * 30;
+  
+  lights.forEach(light => {
+    
+    
+    // light.position.x = Math.sin(time * 0.7) * 30;
+    // light.position.y = Math.cos(time * 0.5) * 40;
+    // light.position.z = Math.cos(time * 0.3) * 30;
+    // const key = getRandomIntInclusive(1,4);
+    // switch (key) {
+    //   case 1:
+    //     light.position.x = Math.sin(time * 0.7) * 30;
+    //     light.position.y = Math.cos(time * 0.5) * 40;
+    //     light.position.z = Math.cos(time * 0.3) * 30;
+    //     break;
+
+    //   case 2:
+    //     light.position.x = Math.cos(time * 0.3) * 30;
+    //     light.position.y = Math.sin(time * 0.5) * 40;
+    //     light.position.z = Math.sin(time * 0.7) * 30;
+    //     break;
+
+    //   case 3:
+    //     light.position.x = Math.sin(time * 0.7) * 30;
+    //     light.position.y = Math.cos(time * 0.3) * 40;
+    //     light.position.z = Math.sin(time * 0.5) * 30;
+    //     break;
+
+    //   case 4:
+    //     light.position.x = Math.sin(time * 0.3) * 30;
+    //     light.position.y = Math.cos(time * 0.7) * 40;
+    //     light.position.z = Math.sin(time * 0.5) * 30;
+    //     break;
+    
+    //   default:
+    //     break;
+    // }
+
+  });
+
 }
 
 // render, or 'draw a still image', of the scene
