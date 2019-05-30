@@ -227,7 +227,7 @@
       }
 
       gColor = finalColor;
-    #endif      
+      #endif      
 
     }
   </script>
@@ -315,11 +315,13 @@
           
         }
 
-        vec3 depth = texture2D(tDepth, vUv).rgb;
+        vec4 depth = texture2D(tDepth, vUv);
+        vec4 color = texture2D(tColor, vUv);
+
 
         // final color      
         out_FragColor = ka + finalColor;
-        //out_FragColor = vec4(0.0, 1.0, 1.0, 1.0);
+        out_FragColor = vec4(tangentFragPos, 1.0);
 
       }
     </script>

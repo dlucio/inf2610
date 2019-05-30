@@ -98,6 +98,13 @@ function createCamera() {
   camera.position.set( 0, 0, 12.0 );
 
   postCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+  // postCamera = new THREE.PerspectiveCamera(
+  //   45, // FOV
+  //   container.clientWidth / container.clientHeight, // aspect
+  //   0.1, // near clipping plane
+  //   100, // far clipping plane
+  // );
+  // postCamera.position.set( 0, 0, 5.0 );
 
 }
 
@@ -176,7 +183,7 @@ function createMaterial() {
     fragmentShader: document.getElementById("gfs").textContent.trim(),
     // vertexShader: document.getElementById("gbuffer-vert").textContent.trim(),
     // fragmentShader: document.getElementById("gbuffer-frag").textContent.trim(),
-    lights: true,
+    lights: useOnlyGBufferFS,
     vertexTangents: true, // https://threejs.org/docs/#api/en/materials/Material.vertexTangents
     defines: {
       TRY_ON_GBUFFER_FS: useOnlyGBufferFS,
@@ -270,7 +277,7 @@ function createRenderer() {
     // window.innerWidth * window.devicePixelRatio,
     // window.innerHeight * window.devicePixelRatio,
     container.clientWidth, container.clientHeight,
-    3);
+    5);
   renderTarget.texture.format = THREE.RGBAFormat;
   renderTarget.texture.minFilter = THREE.NearestFilter;
   renderTarget.texture.magFilter = THREE.NearestFilter;
