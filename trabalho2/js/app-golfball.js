@@ -17,6 +17,7 @@ let postScene;
 let gui;
 let material;
 let materialInfo;
+let postMaterial;
 let model;
 let lights;
 let clock;
@@ -221,16 +222,14 @@ function createMaterial() {
   mrtUniforms.tDepth.value = renderTarget.depthTexture;
   mrtUniforms.bumpTex.value = texture;
   
-  // FIXME: create a new variable called postMaterial
-  postScene.add(new THREE.Mesh(
-    new THREE.PlaneGeometry(2, 2),
-    new THREE.ShaderMaterial({
-      vertexShader: document.getElementById('render-vert').textContent.trim(),
-      fragmentShader: document.getElementById('render-frag').textContent.trim(),
-      uniforms: mrtUniforms,
-      lights: true
-    })
-  ));
+  postMaterial = new THREE.ShaderMaterial({
+    vertexShader: document.getElementById('render-vert').textContent.trim(),
+    fragmentShader: document.getElementById('render-frag').textContent.trim(),
+    uniforms: mrtUniforms,
+    lights: true
+  });
+  const mesh = new THREE.Mesh( new THREE.PlaneGeometry(2,2), postMaterial );
+  postScene.add(mesh);
 
 }
 
