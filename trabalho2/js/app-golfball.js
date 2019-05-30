@@ -165,8 +165,8 @@ function createMaterial() {
   
   material = new THREE.ShaderMaterial({
     uniforms: uniforms,
-    vertexShader: document.getElementById("vs-2").textContent.trim(),
-    fragmentShader: document.getElementById("fs-2").textContent.trim(),
+    vertexShader: document.getElementById("vs").textContent.trim(),
+    fragmentShader: document.getElementById("fs").textContent.trim(),
     // vertexShader: document.getElementById("gbuffer-vert").textContent.trim(),
     // fragmentShader: document.getElementById("gbuffer-frag").textContent.trim(),
     lights: true,
