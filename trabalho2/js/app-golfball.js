@@ -165,10 +165,10 @@ function createMaterial() {
   
   material = new THREE.ShaderMaterial({
     uniforms: uniforms,
-    // vertexShader: document.getElementById("vs").textContent.trim(),
-    // fragmentShader: document.getElementById("fs").textContent.trim(),
-    vertexShader: document.getElementById("gbuffer-vert").textContent.trim(),
-    fragmentShader: document.getElementById("gbuffer-frag").textContent.trim(),
+    vertexShader: document.getElementById("vs-2").textContent.trim(),
+    fragmentShader: document.getElementById("fs-2").textContent.trim(),
+    // vertexShader: document.getElementById("gbuffer-vert").textContent.trim(),
+    // fragmentShader: document.getElementById("gbuffer-frag").textContent.trim(),
     lights: true,
     vertexTangents: true, // https://threejs.org/docs/#api/en/materials/Material.vertexTangents
   });
@@ -283,7 +283,7 @@ function update() {
 // render, or 'draw a still image', of the scene
 function render() {
 
-  if (0) {
+  if (1) {
     renderer.render( scene, camera );
   } else {
     // render scene into target
