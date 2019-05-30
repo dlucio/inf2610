@@ -24,11 +24,11 @@ let clock;
 // Injecting text code inside the element
 function injectTextIntoPage() {
 
-  let tvs = document.getElementById("vs").textContent;
+  let tvs = document.getElementById("gvs").textContent;
   let vsContainer = document.getElementById("vertex-shader-code");
   vsContainer.textContent = tvs;
 
-  let tfs = document.getElementById("fs").textContent;
+  let tfs = document.getElementById("gfs").textContent;
   let fsContainer = document.getElementById("fragment-shader-code");
   fsContainer.textContent = tfs;
 
@@ -61,8 +61,9 @@ function init() {
   scene.background = new THREE.Color( 0x8FBCD4 );
   // scene.background = new THREE.Color( 0xFFFFFF );
   // scene.background = new THREE.Color( 0x000000 );
+
   postScene = new THREE.Scene();
-  postScene.background = new THREE.Color( 0xFF0000 );
+  postScene.background = new THREE.Color( 0x00FF00 );
 
   createCamera();
   createControls();
@@ -131,6 +132,8 @@ function createLights() {
     
     lights.push(pointLight);
     scene.add( pointLight, pointLightHelper );
+    postScene.add( pointLight.clone() );
+    
     
   }
 
@@ -165,8 +168,8 @@ function createMaterial() {
   
   material = new THREE.ShaderMaterial({
     uniforms: uniforms,
-    vertexShader: document.getElementById("vs").textContent.trim(),
-    fragmentShader: document.getElementById("fs").textContent.trim(),
+    vertexShader: document.getElementById("gvs").textContent.trim(),
+    fragmentShader: document.getElementById("gfs").textContent.trim(),
     // vertexShader: document.getElementById("gbuffer-vert").textContent.trim(),
     // fragmentShader: document.getElementById("gbuffer-frag").textContent.trim(),
     lights: true,
@@ -176,26 +179,47 @@ function createMaterial() {
 
   // MRT
   let mrtUniforms = {
-    tDiffuse: {
+    tColor: {
       value: renderTarget.textures[0]
     },
     tNormal: {
       value: renderTarget.textures[1]
     },
-    tPosition: {
+    tTangent: {
       value: renderTarget.textures[2]
     },
+    tTangentPosition: {
+      value: renderTarget.textures[3]
+    },
+    tTangentCameraPos: {
+      value: renderTarget.textures[4]
+    },    
     tDepth: {
       value: renderTarget.depthTexture 
     },
+    bumpTex: {
+      value: texture 
+    },
+  }
+
+  mrtUniforms.ka = new THREE.Uniform(new THREE.Vector4(mi.ka[0], mi.ka[1], mi.ka[2], 1.0));
+  mrtUniforms.kd = new THREE.Uniform(new THREE.Vector4(mi.kd[0], mi.kd[1], mi.kd[2], 1.0));
+  mrtUniforms.ks = new THREE.Uniform(new THREE.Vector4(mi.ks[0], mi.ks[1], mi.ks[2], 1.0));
+
+  mrtUniforms.shi = {
+    type: 'const',
+    value: mi.ns/0.4 // FIXME: Colocar na GUI
   }
 
   // Tip from: https://github.com/mrdoob/three.js/issues/8016#issuecomment-194935980
   mrtUniforms = THREE.UniformsUtils.merge([mrtUniforms, THREE.UniformsLib['lights']]);
-  mrtUniforms.tDiffuse.value = renderTarget.textures[0];
+  mrtUniforms.tColor.value = renderTarget.textures[0];
   mrtUniforms.tNormal.value = renderTarget.textures[1];
-  mrtUniforms.tPosition.value = renderTarget.textures[2];
+  mrtUniforms.tTangent.value = renderTarget.textures[2];
+  mrtUniforms.tTangentPosition.value = renderTarget.textures[3];
+  mrtUniforms.tTangentCameraPos.value = renderTarget.textures[4];
   mrtUniforms.tDepth.value = renderTarget.depthTexture;
+  mrtUniforms.bumpTex.value = texture;
   
   // FIXME: create a new variable called postMaterial
   postScene.add(new THREE.Mesh(
@@ -283,7 +307,7 @@ function update() {
 // render, or 'draw a still image', of the scene
 function render() {
 
-  if (1) {
+  if (0) {
     renderer.render( scene, camera );
   } else {
     // render scene into target

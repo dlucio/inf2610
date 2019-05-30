@@ -147,38 +147,97 @@
     <script id="render-frag" type="x-shader/x-fragment">
       #version 300 es
 
+      struct PointLight {
+        vec3 color;
+        vec3 position;
+        float distance; 
+      };
+
+      // Point light array injected by Three.js
+      uniform PointLight pointLights[NUM_POINT_LIGHTS];
+      
       layout(location = 0) out vec4 pc_FragColor;
 
       in vec2 vUv;
 
-      uniform sampler2D tDiffuse;
+      uniform vec4 ka;               // ambient color
+      uniform vec4 kd;               // diffuse color
+      uniform vec4 ks;               // specular color
+      uniform float shi;             // shininess
+
+      uniform sampler2D tColor;
       uniform sampler2D tNormal;
-      uniform sampler2D tPosition;
+      uniform sampler2D tTangent;
+      uniform sampler2D tTangentPosition;
+      uniform sampler2D tTangentCameraPos;
       uniform sampler2D tDepth;
+      uniform sampler2D bumpTex;
 
       void main() {
 
-        vec3 diffuse = texture( tDiffuse, vUv ).rgb;
-        vec3 normal = texture( tNormal, vUv ).rgb;
+        vec3 T = texture2D(tTangent, vUv).xyz;
+        vec3 N = texture2D(tNormal, vUv).xyz;
+        vec3 B = normalize( cross(N, T) );
+        mat3 TBN = transpose( mat3(T, B, N) );
+
+        vec3 tangentFragPos = texture2D(tTangentPosition, vUv).xyz;
+        vec3 tangentCameraPosition = texture2D(tTangentCameraPos, vUv).xyz;
+
+        // Obtain normal from normal map in range [0,1]
+        vec3 normalTex = texture2D(bumpTex, vUv).xyz;
+  
+        // Transform normal vector to range [-1,1]
+        vec3 normal = normalize(-1.0 + 2.0*normalTex);
+
+        vec4 finalColor = vec4(0.0, 0.0, 0.0, 1.0);
+        for(int i=0; i < NUM_POINT_LIGHTS; i++)
+        {
+          vec3 tanLightPos = TBN * pointLights[i].position;
+          vec3 lightDir = normalize( tanLightPos - tangentFragPos );
+
+          // Compute lighting
+          float NdotL = dot( lightDir, normal );
+
+          // Calculate specular
+          float spec = 0.0;
+          if ( NdotL > 0.0 ) {
+            vec3 viewDir = normalize( tangentCameraPosition - tangentFragPos );
+            vec3 halfVector = normalize( lightDir + viewDir );
+            spec = pow( max( dot( normal, halfVector ), 0.0 ), shi );
+          }
+
+          // diffuse color from light color
+          float diff = max( NdotL, 0.0 );
+          vec4 diffuse = diff * vec4(pointLights[i].color, 1.0);
+  
+          finalColor += kd*diffuse + ks*spec;
+
+        }
+        // final color      
+        pc_FragColor = ka + finalColor;
+
+        /*
+        vec3 diffuse = texture( tColor, vUv ).rgb;
+        //vec3 normal = texture( tNormal, vUv ).rgb;
 
         vec4 depth = texture( tDepth, vUv ).rgba;
-        vec4 position = texture( tPosition, vUv ).rgba;
+        vec4 position = texture( tTangentPosition, vUv ).rgba;
 
         pc_FragColor.rgb = mix( diffuse, normal, step( 0.5, vUv.x ) );
         pc_FragColor.a = 1.0;
         
-        //pc_FragColor.rgb = diffuse.rgb;
+        pc_FragColor.rgb = diffuse.rgb;
         //pc_FragColor = position.rgba;
-        //pc_FragColor = depth.rgba;
+        //pc_FragColor = depth.rgb;
         //pc_FragColor.rgb = vec3(depth.r, depth.r, depth.r);
-        //pc_FragColor = vec4(depth.r, depth.r, depth.r, 1.0);
+        //float c = depth.r;
+        //pc_FragColor = vec4(c,c,c, 1.0);
+        */
         
-        //pc_FragColor.rgb = vec3(0.0, 1.0, 0.0);
-
       }
     </script>
 
-    <script id="vs" type="x-shader/x-vertex">
+    <script id="gvs" type="x-shader/x-vertex">
       #version 300 es
 
       struct PointLight {
@@ -209,6 +268,8 @@
       out vec3 tangentCameraPosition; // camera position in tangent space
       out vec3 tangentFragPos;        // vertex position in tangent space
       out mat3 TBN;                   // Tangent Binormal Normal matrix
+      out vec3 N;                     // normals
+      out vec3 T;                     // tangents
 
       void main() 
       {
@@ -234,7 +295,7 @@
         gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
       }
   </script>
-  <script id="fs" type="x-shader/x-fragment">
+  <script id="gfs" type="x-shader/x-fragment">
     #version 300 es
 
     precision highp float;
@@ -251,6 +312,8 @@
     in vec3 tangentCameraPosition; // camera position in tangent space
     in vec3 tangentFragPos;        // vertex position in tangent space
     in mat3 TBN;                   // Tangent Binormal Normal matrix
+    in vec3 N;                     // normals
+    in vec3 T;                     // tangents
     
     uniform vec4 ka;               // ambient color
     uniform vec4 kd;               // diffuse color
@@ -262,11 +325,25 @@
     uniform PointLight pointLights[NUM_POINT_LIGHTS];
 
     // final color
-    out vec4 out_FragColor;
+    //layout(location=0) out vec4 out_FragColor;
+
+    // GBuffer outputs
+    layout(location=0) out vec4 gColor;
+    layout(location=1) out vec3 gNormal;
+    layout(location=2) out vec3 gTangent;
+    layout(location=3) out vec3 gTangentPosition;
+    layout(location=4) out vec3 gTangentCameraPos;
 
     void main() 
     {
-      
+      // GBuffers outputs
+      gColor = vec4(1.0); //ka; FIXME!!!
+      gNormal = N;
+      gTangent = T;
+      gTangentPosition = tangentFragPos;
+      gTangentCameraPos = tangentCameraPosition;
+
+      /*
       // Obtain normal from normal map in range [0,1]
       vec3 normalTex = texture2D(bumpTex, vUv).xyz;
 
@@ -301,6 +378,7 @@
 
       // final color      
       out_FragColor = ka + finalColor;
+      */
 
     }
   </script>
