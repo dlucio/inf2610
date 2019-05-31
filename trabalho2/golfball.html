@@ -219,12 +219,12 @@
       uniform vec3 cameraPos;        // gbuffer camera position
       uniform int gBufferToShow;     // show saved gbuffer 
 
-      uniform sampler2D tColor;
-      uniform sampler2D tNormalMap;
-      uniform sampler2D tPosition;
+      uniform sampler2D tColor;      // vertex color
+      uniform sampler2D tNormalMap;  // normals from normal map texture
+      uniform sampler2D tPosition;   // vertex position
 
-      uniform sampler2D tNormal;
-      uniform sampler2D tDepth;
+      uniform sampler2D tNormal;     // vertex normal
+      uniform sampler2D tDepth;      // depth buffer
 
       void main() {
 
