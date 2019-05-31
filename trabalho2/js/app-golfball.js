@@ -22,6 +22,7 @@ let model;
 let postModel;
 let lights;
 let clock;
+let postUniforms;
 
 // FIXME: Remove when everything is working
 const useOnlyGBufferFS = false;
@@ -173,7 +174,7 @@ function createMaterial() {
 
 
   // MRT
-  let postUniforms = {
+  postUniforms = {
     tColor: {
       value: renderTarget.textures[0]
     },
@@ -183,9 +184,6 @@ function createMaterial() {
     tPosition: {
       value: renderTarget.textures[2]
     },
-    tCameraPos: {
-      value: renderTarget.textures[3]
-    },    
     tDepth: {
       value: renderTarget.depthTexture 
     },
@@ -193,23 +191,21 @@ function createMaterial() {
   postUniforms.ka = new THREE.Uniform();
   postUniforms.kd = new THREE.Uniform();
   postUniforms.ks = new THREE.Uniform();
+  postUniforms.shi = new THREE.Uniform();
+  postUniforms.cameraPos = new THREE.Uniform();
   
-  postUniforms.shi = {
-    type: 'const',
-    value: mi.ns/0.4 // FIXME: Colocar na GUI
-  }
   
   // Tip from: https://github.com/mrdoob/three.js/issues/8016#issuecomment-194935980
   postUniforms = THREE.UniformsUtils.merge([postUniforms, THREE.UniformsLib['lights']]);
   postUniforms.tColor.value = renderTarget.textures[0];
   postUniforms.tNormal.value = renderTarget.textures[1];
   postUniforms.tPosition.value = renderTarget.textures[2];
-  postUniforms.tCameraPos.value = renderTarget.textures[3];
   postUniforms.tDepth.value = renderTarget.depthTexture;
   postUniforms.ka.value = new THREE.Vector4(mi.ka[0], mi.ka[1], mi.ka[2], 1.0);
   postUniforms.kd.value = new THREE.Vector4(mi.kd[0], mi.kd[1], mi.kd[2], 1.0);
   postUniforms.ks.value = new THREE.Vector4(mi.ks[0], mi.ks[1], mi.ks[2], 1.0);
   postUniforms.shi.value = mi.ns/0.4;
+  postUniforms.cameraPos.value = camera.position;
 
   postMaterial = new THREE.ShaderMaterial({
     vertexShader: document.getElementById('render-vert').textContent.trim(),
@@ -278,34 +274,36 @@ function update() {
 
   if (typeof(model) !== 'undefined') {
     // model.rotation.y += 0.01;
+    postUniforms.cameraPos.value = camera.position;
   }
-
+  
   const time = Date.now() * 0.0005;
   lights.forEach(light => {
     
     light.position.x = Math.sin(time * 0.7) * light.startPos.x;
     light.position.y = Math.cos(time * 0.5) * light.startPos.y;
     light.position.z = Math.cos(time * 0.4) * light.startPos.z;
-
+    
   });
-
+  
+  
 }
 
 // render, or 'draw a still image', of the scene
 function render() {
-
+  
   if (useOnlyGBufferFS) {
     renderer.render( scene, camera );
   } else {
     // render scene into target
     renderer.setRenderTarget(renderTarget);
     renderer.render(scene, camera);
-  
+    
     // render post FX
     renderer.setRenderTarget(null);
     renderer.render(postScene, postCamera);
   }
-
+  
 }
 
 // 

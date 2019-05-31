@@ -147,14 +147,12 @@
     layout(location=0) out vec4 gColor;
     layout(location=1) out vec3 gNormal;
     layout(location=2) out vec3 gPosition;
-    layout(location=3) out vec3 gCameraPos;
 
     void main() 
     {
       // GBuffers outputs
       gColor = kd;
       gPosition = fragPos;
-      gCameraPos = cameraPosition;
       
       // Obtain normal from normal map in range [0,1]
       vec3 normalTex = texture2D(bumpTex, vUv).xyz;
@@ -196,18 +194,17 @@
       uniform vec4 kd;               // diffuse color
       uniform vec4 ks;               // specular color
       uniform float shi;             // shininess
+      uniform vec3 cameraPos;        // gbuffer camera position
 
       uniform sampler2D tColor;
       uniform sampler2D tNormal;
       uniform sampler2D tPosition;
-      uniform sampler2D tCameraPos;
       uniform sampler2D tDepth;
 
       void main() {
 
         vec3 normal = normalize(texture2D(tNormal, vUv).xyz);
         vec3 fragPos = texture2D(tPosition, vUv).xyz;
-        vec3 cameraPos = texture2D(tCameraPos, vUv).xyz;
 
         // Set normal from normal map in range [0,1]
         normal = normalize(-1.0 + 2.0*normal);
@@ -236,10 +233,6 @@
           finalColor += kd*diffuse + ks*spec;
           
         }
-
-        vec4 depth = texture2D(tDepth, vUv);
-        vec4 color = texture2D(tColor, vUv);
-
 
         // final color      
         out_FragColor = ka + finalColor;
