@@ -15,7 +15,7 @@ let renderTarget;
 let scene;
 let postScene;
 let gui;
-let material;
+let gBufferMaterial;
 let materialInfo;
 let postMaterial;
 let model;
@@ -98,13 +98,6 @@ function createCamera() {
   camera.position.set( 0, 0, 12.0 );
 
   postCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
-  // postCamera = new THREE.PerspectiveCamera(
-  //   45, // FOV
-  //   container.clientWidth / container.clientHeight, // aspect
-  //   0.1, // near clipping plane
-  //   100, // far clipping plane
-  // );
-  // postCamera.position.set( 0, 0, 5.0 );
 
 }
 
@@ -119,7 +112,7 @@ function createControls() {
 function createLights() {
 
   const pi = Math.PI;
-  const numLights = 4;
+  const numLights = 32;
   lights = new Array();
   for (let index = 0; index < numLights; index++) {
 
@@ -136,16 +129,14 @@ function createLights() {
 
     const color = new THREE.Color(r,g,b);
 
-    const pointLight = new THREE.PointLight(color, 1.0);
+    const intensity = 0.08 + 1.0/numLights;
+    const pointLight = new THREE.PointLight(color, intensity);
     pointLight.position.set( x, y, z);
     pointLight.startPos = { x:x, y:y, z:z }
 
-    const pointLightHelper = new THREE.PointLightHelper(pointLight);
-    
     lights.push(pointLight);
-    scene.add( pointLight.clone(), pointLightHelper );
+    scene.add( pointLight.clone() );
     postScene.add( pointLight );
-    
     
   }
 
@@ -153,32 +144,22 @@ function createLights() {
 
 function createMaterial() {
 
-
-  let uniforms = {}
   const mi = materialInfo;
-  uniforms.ka = new THREE.Uniform();
-  uniforms.kd = new THREE.Uniform();
-  uniforms.ks = new THREE.Uniform();
-  uniforms.shi = new THREE.Uniform();
-  uniforms.bumpTex = new THREE.Uniform();
-
   const textureLoader = new THREE.TextureLoader();
   const texture = textureLoader.load( materialInfo.bumpTex );
   texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
 
-  // Tip from: https://github.com/mrdoob/three.js/issues/8016#issuecomment-194935980
-  uniforms = THREE.UniformsUtils.merge([uniforms, THREE.UniformsLib['lights']]);
-  uniforms.bumpTex.value = texture;
-  uniforms.ka.value = new THREE.Vector4(mi.ka[0], mi.ka[1], mi.ka[2], 1.0);
-  uniforms.kd.value = new THREE.Vector4(mi.kd[0], mi.kd[1], mi.kd[2], 1.0);
-  uniforms.ks.value = new THREE.Vector4(mi.ks[0], mi.ks[1], mi.ks[2], 1.0);
-  uniforms.shi.value = mi.ns/0.4;
+  let gBufferUniforms = {}
+  gBufferUniforms.kd = new THREE.Uniform();
+  gBufferUniforms.bumpTex = new THREE.Uniform();
 
-  console.log("MI", mi);
-  
-  
-  material = new THREE.ShaderMaterial({
-    uniforms: uniforms,
+  // Tip from: https://github.com/mrdoob/three.js/issues/8016#issuecomment-194935980
+  gBufferUniforms = THREE.UniformsUtils.merge([gBufferUniforms, THREE.UniformsLib['lights']]);
+  gBufferUniforms.bumpTex.value = texture;
+  gBufferUniforms.kd.value = new THREE.Vector4(mi.kd[0], mi.kd[1], mi.kd[2], 1.0);
+
+  gBufferMaterial = new THREE.ShaderMaterial({
+    uniforms: gBufferUniforms,
     vertexShader: document.getElementById("gvs").textContent.trim(),
     fragmentShader: document.getElementById("gfs").textContent.trim(),
     // vertexShader: document.getElementById("gbuffer-vert").textContent.trim(),
@@ -192,7 +173,7 @@ function createMaterial() {
 
 
   // MRT
-  let mrtUniforms = {
+  let postUniforms = {
     tColor: {
       value: renderTarget.textures[0]
     },
@@ -209,34 +190,35 @@ function createMaterial() {
       value: renderTarget.depthTexture 
     },
   }
-  mrtUniforms.ka = new THREE.Uniform();
-  mrtUniforms.kd = new THREE.Uniform();
-  mrtUniforms.ks = new THREE.Uniform();
+  postUniforms.ka = new THREE.Uniform();
+  postUniforms.kd = new THREE.Uniform();
+  postUniforms.ks = new THREE.Uniform();
   
-  mrtUniforms.shi = {
+  postUniforms.shi = {
     type: 'const',
     value: mi.ns/0.4 // FIXME: Colocar na GUI
   }
   
   // Tip from: https://github.com/mrdoob/three.js/issues/8016#issuecomment-194935980
-  mrtUniforms = THREE.UniformsUtils.merge([mrtUniforms, THREE.UniformsLib['lights']]);
-  mrtUniforms.tColor.value = renderTarget.textures[0];
-  mrtUniforms.tNormal.value = renderTarget.textures[1];
-  mrtUniforms.tPosition.value = renderTarget.textures[2];
-  mrtUniforms.tCameraPos.value = renderTarget.textures[3];
-  mrtUniforms.tDepth.value = renderTarget.depthTexture;
-  mrtUniforms.ka.value = new THREE.Vector4(mi.ka[0], mi.ka[1], mi.ka[2], 1.0);
-  mrtUniforms.kd.value = new THREE.Vector4(mi.kd[0], mi.kd[1], mi.kd[2], 1.0);
-  mrtUniforms.ks.value = new THREE.Vector4(mi.ks[0], mi.ks[1], mi.ks[2], 1.0);
-  mrtUniforms.shi.value = mi.ns/0.4;
+  postUniforms = THREE.UniformsUtils.merge([postUniforms, THREE.UniformsLib['lights']]);
+  postUniforms.tColor.value = renderTarget.textures[0];
+  postUniforms.tNormal.value = renderTarget.textures[1];
+  postUniforms.tPosition.value = renderTarget.textures[2];
+  postUniforms.tCameraPos.value = renderTarget.textures[3];
+  postUniforms.tDepth.value = renderTarget.depthTexture;
+  postUniforms.ka.value = new THREE.Vector4(mi.ka[0], mi.ka[1], mi.ka[2], 1.0);
+  postUniforms.kd.value = new THREE.Vector4(mi.kd[0], mi.kd[1], mi.kd[2], 1.0);
+  postUniforms.ks.value = new THREE.Vector4(mi.ks[0], mi.ks[1], mi.ks[2], 1.0);
+  postUniforms.shi.value = mi.ns/0.4;
 
-  
   postMaterial = new THREE.ShaderMaterial({
     vertexShader: document.getElementById('render-vert').textContent.trim(),
     fragmentShader: document.getElementById('render-frag').textContent.trim(),
-    uniforms: mrtUniforms,
+    uniforms: postUniforms,
     lights: true
   });
+
+  // FIXME: Create a function for that?
   const mesh = new THREE.Mesh( new THREE.PlaneGeometry(2,2), postMaterial );
   postScene.add(mesh);
 }
@@ -324,8 +306,6 @@ function render() {
     renderer.render(postScene, postCamera);
   }
 
-  
-
 }
 
 // 
@@ -389,18 +369,13 @@ function loadModelAndMaterial() {
     
     model = obj.detail.loaderRootNode.children[0];
     model.position.copy( position );
-    model.material = material;
+    model.material = gBufferMaterial;
     
     // https://github.com/mrdoob/three.js/issues/12402
     // https://threejs.org/docs/#examples/utils/BufferGeometryUtils
     THREE.BufferGeometryUtils.computeTangents( model.geometry );
 
     scene.add( model );
-
-    // postModel = obj.detail.loaderRootNode.children[0];
-    // postModel.position.copy( position );
-    // postModel.material = postMaterial;
-    // postScene.add( postModel );
 
   };
 
