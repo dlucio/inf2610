@@ -56,26 +56,39 @@
         <header class="header">
             <h1 class="title">Deferred Shading: Golf Ball</h1>
             <!-- <h2 class="title">Using TBN in vertex shader</h2> -->
+            <div id="scene-container">
+              <!-- This div will hold our scene-->
+            </div>
         </header>
-        <article class="main">
-          <div id="scene-container">
-            <!-- This div will hold our scene-->
-          </div>
-        </article>
         <aside class="aside aside-1">
-            <h2 class="title">GBuffer Vertex Shader</h2>
+            <h2 class="title">G-Buffer Vertex Shader</h2>
           <pre>
-            <code class="glsl" id="vertex-shader-code">
-              VERTEX SHADER    
+            <code class="glsl" id="gbuffer-vertex-shader-code">
+              G-BUFFER-VERTEX SHADER    
             </code>
           </pre>
-  
+        </aside>
+        <aside class="aside aside-1">
+          <h2 class="title">G-Buffer Fragment Shader</h2>
+          <pre>
+            <code class="glsl" id="gbuffer-fragment-shader-code">
+              G-BUFFER-FRAGMENT SHADER
+            </code>
+          </pre>
         </aside>
         <aside class="aside aside-2">
-          <h2 class="title">GBuffer Fragment Shader</h2>
+            <h2 class="title">Lighting Vertex Shader</h2>
           <pre>
-            <code class="glsl" id="fragment-shader-code">
-              FRAGMENT SHADER
+            <code class="glsl" id="lighting-vertex-shader-code">
+              LIGHTING-VERTEX SHADER    
+            </code>
+          </pre>
+        </aside>
+        <aside class="aside aside-2">
+          <h2 class="title">Lighting Fragment Shader</h2>
+          <pre>
+            <code class="glsl" id="lighting-fragment-shader-code">
+              LIGHTING-FRAGMENT SHADER
             </code>
           </pre>
         </aside>
@@ -94,6 +107,7 @@
         Uniforms injected by Three.js:
         - position: vertex position
         - uv: texture coordinates
+        - normal: vertex normal
         - projectionMatrix: project matrix
         - normalMatrix: normal matrix
         - modelViewMatrix: model view matrix
@@ -107,13 +121,15 @@
       out vec3 fragPos; // vertex position
       out mat3 TBN;     // Tangent Binormal Normal matrix
 
+      out vec3 vNormal;  // vertex normal
+
       void main() 
       {
         
         // Generating binormal vector
         vec4 binormal = normalize( vec4( cross(normal, tangent.xyz), 0.0 ) );
 
-        // Gerenating Inverted Tangent Binormal Normal matrix
+        // Gerenating Tangent Binormal Normal matrix
         vec3 T = normalize(vec3(modelMatrix * tangent));
         vec3 B = normalize(vec3(modelMatrix * binormal));
         vec3 N = normalize(vec3(modelMatrix * vec4(normal, 0.0)));
@@ -122,8 +138,9 @@
         // Position in world coordinates
         fragPos = vec3( modelMatrix * vec4(position, 1.0) );
 
-        // Just repassing the texture coordinates
+        // Just repassing the texture coordinates and vertex normals
         vUv = uv;
+        vNormal = normal;
 
         gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
       }
@@ -138,26 +155,31 @@
     in vec4 color;                 // diffuse color
     in vec2 vUv;                   // texture coordinates
     in vec3 fragPos;               // vertex position
+    in vec3 vNormal;               // vertex normal
     in mat3 TBN;                   // Tangent Binormal Normal matrix
     
     uniform vec4 kd;               // diffuse color
     uniform sampler2D bumpTex;     // normal texture
 
-    // GBuffer outputs
-    layout(location=0) out vec4 gColor;
-    layout(location=1) out vec3 gNormal;
-    layout(location=2) out vec3 gPosition;
+    // G-Buffer outputs
+    layout(location=0) out vec4 gColor;     // vertex color
+    layout(location=1) out vec3 gNormalMap; // normal map from bump texture
+    layout(location=2) out vec3 gPosition;  // vertex position
+    layout(location=3) out vec3 gNormal;    // vertex normal
 
     void main() 
     {
-      // GBuffers outputs
-      gColor = kd;
+      // G-Buffers outputs
       gPosition = fragPos;
       
       // Obtain normal from normal map in range [0,1]
       vec3 normalTex = texture2D(bumpTex, vUv).xyz;
-      gNormal = normalize(-1.0 + 2.0*normalTex);
-      gNormal = normalize( TBN * gNormal );
+      gNormalMap = normalize(-1.0 + 2.0*normalTex);
+      gNormalMap = normalize( TBN * gNormalMap );
+      
+      // G-Buffer output for debug
+      gColor = kd;
+      gNormal = vNormal;
     }
   </script>
     
@@ -195,16 +217,22 @@
       uniform vec4 ks;               // specular color
       uniform float shi;             // shininess
       uniform vec3 cameraPos;        // gbuffer camera position
+      uniform int gBufferToShow;     // show saved gbuffer 
 
       uniform sampler2D tColor;
-      uniform sampler2D tNormal;
+      uniform sampler2D tNormalMap;
       uniform sampler2D tPosition;
+
+      uniform sampler2D tNormal;
       uniform sampler2D tDepth;
 
       void main() {
 
-        vec3 normal = normalize(texture2D(tNormal, vUv).xyz);
+        vec3 normal = texture2D(tNormalMap, vUv).xyz;
         vec3 fragPos = texture2D(tPosition, vUv).xyz;
+
+        // Only for debug
+        vec3 normalMapColor = normal;
 
         // Set normal from normal map in range [0,1]
         normal = normalize(-1.0 + 2.0*normal);
@@ -234,144 +262,35 @@
           
         }
 
-        // final color      
+        // final color
         out_FragColor = ka + finalColor;
+
+        // For debug: Textures from G-Buffer
+        if (gBufferToShow == 1) 
+        {
+          // position
+          out_FragColor = vec4(fragPos, 1.0);
+        } 
+        else if (gBufferToShow == 2) {
+          // normal map
+          out_FragColor = vec4(normalMapColor, 1.0);
+        }
+        else if (gBufferToShow == 3) {
+          // vertex normal
+          out_FragColor = vec4(texture2D(tNormal, vUv).rgb, 1.0);
+        }
+        else if (gBufferToShow == 4) {
+          // vertex color
+          out_FragColor = vec4(texture2D(tColor, vUv).rgb, 1.0);
+        }
+        else if (gBufferToShow == 5) {
+          // depth
+          vec4 depth = texture( tDepth, vUv ).rgba;
+          out_FragColor = vec4(depth.r, depth.r, depth.r, 1.0);
+        }
 
       }
     </script>
-
-  <script id="vs-2" type="x-shader/x-vertex">
-    #version 300 es
-
-    struct PointLight {
-      vec3 color;
-      vec3 position;
-      float distance; 
-    };
-
-    /**
-      https://threejs.org/docs/index.html#api/en/renderers/webgl/WebGLProgram
-      Uniforms injected by Three.js:
-      - position: vertex position
-      - uv: texture coordinates
-      - projectionMatrix: project matrix
-      - modelMatrix: model matrix
-      - modelViewMatrix: model view matrix
-      - cameraPosition: camera position
-    */
-
-    // Point light array injected by Three.js
-    uniform PointLight pointLights[NUM_POINT_LIGHTS];
-    
-    // Tangent generated by model loader OBJLoader2 
-    attribute vec4 tangent;
-    
-    out vec4 color;       // diffuse color
-    out vec2 vUv;         // texture coordinates
-    out vec3 dirLight[NUM_POINT_LIGHTS];    // light direction
-    out vec3 halfVector[NUM_POINT_LIGHTS];  // vector between viewer and light
-    out mat3 TBN;         // Tangent Binormal Normal matrix
-
-    void main() 
-    {
-
-      // Generating binormal vector
-      vec4 binormal = normalize( vec4( cross(normal, tangent.xyz), 0.0 ) );
-
-      // Gerenating Tangent Binormal Normal matrix
-      vec3 T = normalize(vec3(modelMatrix * tangent));
-      vec3 B = normalize(vec3(modelMatrix * binormal));
-      vec3 N = normalize(vec3(modelMatrix * vec4(normal,    0.0)));
-      TBN = ( mat3(T, B, N) );
-
-      for(int i=0; i < NUM_POINT_LIGHTS; i++)
-      {
-        // Getting light direction from the 1st point light
-        dirLight[i] = pointLights[i].position - position;
-        
-        // Calculate half vector
-        halfVector[i] = normalize( dirLight[i] + cameraPosition );
-      }
-      // Just repassing the texture coordinates
-      vUv = uv;
-
-      // Using white color as default color
-      color = vec4(1.0);
-
-      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-    }
-  </script>
-  <script id="fs-2" type="x-shader/x-fragment">
-    #version 300 es
-
-    precision highp float;
-    precision highp int;
-
-    struct PointLight {
-      vec3 color;
-      vec3 position;
-      float distance; 
-    };
-    
-
-    in vec4 color;              // diffuse color (not used)
-    in vec2 vUv;                // texture coordinates
-    in vec3 dirLight[NUM_POINT_LIGHTS];           // light direction 
-    in vec3 halfVector[NUM_POINT_LIGHTS];         // vector between viewer and light
-    in mat3 TBN;                // Tangent Binormal Normal matrix
-    
-    uniform vec4 ka;            // ambient color
-    uniform vec4 kd;            // diffuse color
-    uniform vec4 ks;            // specular color
-    uniform float shi;          // shininess
-    uniform sampler2D bumpTex;  // normal texture
-
-    // Point light array injected by Three.js
-    uniform PointLight pointLights[NUM_POINT_LIGHTS];
-
-    // final color
-    out vec4 out_FragColor;
-
-    void main() 
-    {
-      
-      // Obtain normal from normal map in range [0,1]
-      vec3 normalTex = texture2D(bumpTex, vUv).xyz;
-
-      // Transform normal vector to range [-1,1]
-      vec3 normal = normalize(-1.0 + 2.0*normalTex);
-
-      // Normal in world space
-      normal = normalize( TBN * normal );
-
-      vec4 finalColor = vec4(0.0, 0.0, 0.0, 1.0);
-      for(int i=0; i < NUM_POINT_LIGHTS; i++)
-      {
-        vec3 light = normalize(dirLight[i]);
-  
-        // Compute lighting
-        float NdotL = dot( normal, light );
-        float diff = max( NdotL, 0.0 );
-  
-        // Calculate specular
-        float spec = 0.0;
-        if ( NdotL > 0.0 ) {
-          vec3 halfv = normalize( halfVector[i] );
-          spec = pow( max( dot( normal, halfv ), 0.0 ), shi/0.4);
-        }
-        
-        // diffuse color from light color
-        vec4 diffuse = diff * vec4(pointLights[i].color, 1.0);
-
-        finalColor += kd*diffuse + ks*spec;
-      }
-
-      // final color
-      out_FragColor = ka + finalColor;
-
-    }
-  </script>
-
 
     <!--
       Finally, include the script that

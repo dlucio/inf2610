@@ -30,13 +30,21 @@ const useOnlyGBufferFS = false;
 // Injecting text code inside the element
 function injectTextIntoPage() {
 
-  let tvs = document.getElementById("gvs").textContent;
-  let vsContainer = document.getElementById("vertex-shader-code");
-  vsContainer.textContent = tvs;
+  let tgvs = document.getElementById("gvs").textContent;
+  let gvsContainer = document.getElementById("gbuffer-vertex-shader-code");
+  gvsContainer.textContent = tgvs;
 
-  let tfs = document.getElementById("gfs").textContent;
-  let fsContainer = document.getElementById("fragment-shader-code");
-  fsContainer.textContent = tfs;
+  let tgfs = document.getElementById("gfs").textContent;
+  let gfsContainer = document.getElementById("gbuffer-fragment-shader-code");
+  gfsContainer.textContent = tgfs;
+
+  let tlvs = document.getElementById("render-vert").textContent;
+  let lvsContainer = document.getElementById("lighting-vertex-shader-code");
+  lvsContainer.textContent = tlvs;
+
+  let tlfs = document.getElementById("render-frag").textContent;
+  let lfsContainer = document.getElementById("lighting-fragment-shader-code");
+  lfsContainer.textContent = tlfs;
 
 }
 
@@ -64,8 +72,8 @@ function init() {
   container = document.querySelector( '#scene-container' );
 
   scene = new THREE.Scene();
-  scene.background = new THREE.Color( 0x8FBCD4 );
-  // scene.background = new THREE.Color( 0xFFFFFF );
+  // scene.background = new THREE.Color( 0x8FBCD4 );
+  scene.background = new THREE.Color( 0xFFFFFF );
   // scene.background = new THREE.Color( 0x000000 );
 
   postScene = new THREE.Scene();
@@ -178,11 +186,14 @@ function createMaterial() {
     tColor: {
       value: renderTarget.textures[0]
     },
-    tNormal: {
+    tNormalMap: {
       value: renderTarget.textures[1]
     },
     tPosition: {
       value: renderTarget.textures[2]
+    },
+    tNormal: {
+      value: renderTarget.textures[3]
     },
     tDepth: {
       value: renderTarget.depthTexture 
@@ -193,19 +204,22 @@ function createMaterial() {
   postUniforms.ks = new THREE.Uniform();
   postUniforms.shi = new THREE.Uniform();
   postUniforms.cameraPos = new THREE.Uniform();
+  postUniforms.gBufferToShow = new THREE.Uniform();
   
   
   // Tip from: https://github.com/mrdoob/three.js/issues/8016#issuecomment-194935980
   postUniforms = THREE.UniformsUtils.merge([postUniforms, THREE.UniformsLib['lights']]);
   postUniforms.tColor.value = renderTarget.textures[0];
-  postUniforms.tNormal.value = renderTarget.textures[1];
+  postUniforms.tNormalMap.value = renderTarget.textures[1];
   postUniforms.tPosition.value = renderTarget.textures[2];
+  postUniforms.tNormal.value = renderTarget.textures[3];
   postUniforms.tDepth.value = renderTarget.depthTexture;
   postUniforms.ka.value = new THREE.Vector4(mi.ka[0], mi.ka[1], mi.ka[2], 1.0);
   postUniforms.kd.value = new THREE.Vector4(mi.kd[0], mi.kd[1], mi.kd[2], 1.0);
   postUniforms.ks.value = new THREE.Vector4(mi.ks[0], mi.ks[1], mi.ks[2], 1.0);
   postUniforms.shi.value = mi.ns/0.4;
   postUniforms.cameraPos.value = camera.position;
+  postUniforms.gBufferToShow.value = 0;
 
   postMaterial = new THREE.ShaderMaterial({
     vertexShader: document.getElementById('render-vert').textContent.trim(),
