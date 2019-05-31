@@ -208,11 +208,11 @@ function createMaterial() {
     tTangentCameraPos: {
       value: renderTarget.textures[4]
     },    
+    tBumpMap: {
+      value: renderTarget.textures[5] 
+    },
     tDepth: {
       value: renderTarget.depthTexture 
-    },
-    bumpTex: {
-      value: texture 
     },
   }
   mrtUniforms.ka = new THREE.Uniform();
@@ -231,8 +231,8 @@ function createMaterial() {
   mrtUniforms.tTangent.value = renderTarget.textures[2];
   mrtUniforms.tTangentPosition.value = renderTarget.textures[3];
   mrtUniforms.tTangentCameraPos.value = renderTarget.textures[4];
+  mrtUniforms.tBumpMap.value = renderTarget.textures[5];
   mrtUniforms.tDepth.value = renderTarget.depthTexture;
-  mrtUniforms.bumpTex.value = texture;
   mrtUniforms.ka.value = new THREE.Vector4(mi.ka[0], mi.ka[1], mi.ka[2], 1.0);
   mrtUniforms.kd.value = new THREE.Vector4(mi.kd[0], mi.kd[1], mi.kd[2], 1.0);
   mrtUniforms.ks.value = new THREE.Vector4(mi.ks[0], mi.ks[1], mi.ks[2], 1.0);
@@ -277,7 +277,7 @@ function createRenderer() {
     // window.innerWidth * window.devicePixelRatio,
     // window.innerHeight * window.devicePixelRatio,
     container.clientWidth, container.clientHeight,
-    5);
+    6);
   renderTarget.texture.format = THREE.RGBAFormat;
   renderTarget.texture.minFilter = THREE.NearestFilter;
   renderTarget.texture.magFilter = THREE.NearestFilter;
