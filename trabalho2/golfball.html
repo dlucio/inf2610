@@ -280,7 +280,7 @@
         vec3 T = normalize(texture2D(tTangent, vUv).xyz);
         vec3 B = normalize(texture2D(tBinormal, vUv).xyz);
         vec3 N = normalize(texture2D(tNormal, vUv).xyz);
-        mat3 TBN = transpose( mat3(T, B, N) );
+        mat3 TBN = ( mat3(T, B, N) );
 
         vec3 fragPos = texture2D(tPosition, vUv).xyz;
         vec3 cameraPos = texture2D(tCameraPos, vUv).xyz;
@@ -290,7 +290,7 @@
   
         // Transform normal vector to range [-1,1]
         vec3 normal = normalize(-1.0 + 2.0*normalTex);
-        normal = normalize( TBN * normal );
+        normal = TBN * normal;
 
         vec4 finalColor = vec4(0.0, 0.0, 0.0, 1.0);
         for(int i=0; i < NUM_POINT_LIGHTS; i++)

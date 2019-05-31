@@ -24,7 +24,7 @@ let lights;
 let clock;
 
 // FIXME: Remove when everything is working
-const useOnlyGBufferFS = true;
+const useOnlyGBufferFS = false;
 
 // Injecting text code inside the element
 function injectTextIntoPage() {
