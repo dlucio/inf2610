@@ -174,27 +174,23 @@
     // GBuffer outputs
     layout(location=0) out vec4 gColor;
     layout(location=1) out vec3 gNormal;
-    layout(location=2) out vec3 gBinormal;
-    layout(location=3) out vec3 gTangent;
-    layout(location=4) out vec3 gPosition;
-    layout(location=5) out vec3 gCameraPos;
-    layout(location=6) out vec3 gBumpMap;
+    layout(location=2) out vec3 gPosition;
+    layout(location=3) out vec3 gCameraPos;
 
     void main() 
     {
       // GBuffers outputs
       gColor = kd;
-      gNormal = N;
-      gTangent = T;
-      gBinormal = normalize( cross(N,T) );
       gPosition = fragPos;
       gCameraPos = cameraPosition;
-      gBumpMap = texture2D(bumpTex, vUv).xyz;
+      
+      // Obtain normal from normal map in range [0,1]
+      gNormal = N;
+      vec3 normalTex = texture2D(bumpTex, vUv).xyz;
+      gNormal = normalize(-1.0 + 2.0*normalTex);
+      gNormal = normalize( TBN * gNormal );
 
     #ifdef TRY_ON_GBUFFER_FS
-
-      // Obtain normal from normal map in range [0,1]
-      vec3 normalTex = texture2D(bumpTex, vUv).xyz;
 
       // Transform normal vector to range [-1,1]
       vec3 normal = normalize(-1.0 + 2.0*normalTex);
@@ -268,29 +264,18 @@
 
       uniform sampler2D tColor;
       uniform sampler2D tNormal;
-      uniform sampler2D tBinormal;
-      uniform sampler2D tTangent;
       uniform sampler2D tPosition;
       uniform sampler2D tCameraPos;
       uniform sampler2D tDepth;
-      uniform sampler2D tBumpMap;
 
       void main() {
 
-        vec3 T = normalize(texture2D(tTangent, vUv).xyz);
-        vec3 B = normalize(texture2D(tBinormal, vUv).xyz);
-        vec3 N = normalize(texture2D(tNormal, vUv).xyz);
-        mat3 TBN = ( mat3(T, B, N) );
-
+        vec3 normal = normalize(texture2D(tNormal, vUv).xyz);
         vec3 fragPos = texture2D(tPosition, vUv).xyz;
         vec3 cameraPos = texture2D(tCameraPos, vUv).xyz;
 
-        // Obtain normal from normal map in range [0,1]
-        vec3 normalTex = texture2D(tBumpMap, vUv).xyz;
-  
-        // Transform normal vector to range [-1,1]
-        vec3 normal = normalize(-1.0 + 2.0*normalTex);
-        normal = TBN * normal;
+        // Set normal from normal map in range [0,1]
+        normal = normalize(-1.0 + 2.0*normal);
 
         vec4 finalColor = vec4(0.0, 0.0, 0.0, 1.0);
         for(int i=0; i < NUM_POINT_LIGHTS; i++)
@@ -323,7 +308,7 @@
 
         // final color      
         out_FragColor = ka + finalColor;
-        //out_FragColor = vec4(normal, 1.0);
+        //out_FragColor = vec4(N, 1.0);
 
       }
     </script>

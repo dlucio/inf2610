@@ -143,8 +143,8 @@ function createLights() {
     const pointLightHelper = new THREE.PointLightHelper(pointLight);
     
     lights.push(pointLight);
-    scene.add( pointLight, pointLightHelper );
-    postScene.add( pointLight.clone() );
+    scene.add( pointLight.clone(), pointLightHelper );
+    postScene.add( pointLight );
     
     
   }
@@ -199,21 +199,12 @@ function createMaterial() {
     tNormal: {
       value: renderTarget.textures[1]
     },
-    tBinormal: {
+    tPosition: {
       value: renderTarget.textures[2]
     },
-    tTangent: {
-      value: renderTarget.textures[3]
-    },
-    tPosition: {
-      value: renderTarget.textures[4]
-    },
     tCameraPos: {
-      value: renderTarget.textures[5]
+      value: renderTarget.textures[3]
     },    
-    tBumpMap: {
-      value: renderTarget.textures[6] 
-    },
     tDepth: {
       value: renderTarget.depthTexture 
     },
@@ -231,11 +222,8 @@ function createMaterial() {
   mrtUniforms = THREE.UniformsUtils.merge([mrtUniforms, THREE.UniformsLib['lights']]);
   mrtUniforms.tColor.value = renderTarget.textures[0];
   mrtUniforms.tNormal.value = renderTarget.textures[1];
-  mrtUniforms.tBinormal.value = renderTarget.textures[2];
-  mrtUniforms.tTangent.value = renderTarget.textures[3];
-  mrtUniforms.tPosition.value = renderTarget.textures[4];
-  mrtUniforms.tCameraPos.value = renderTarget.textures[5];
-  mrtUniforms.tBumpMap.value = renderTarget.textures[6];
+  mrtUniforms.tPosition.value = renderTarget.textures[2];
+  mrtUniforms.tCameraPos.value = renderTarget.textures[3];
   mrtUniforms.tDepth.value = renderTarget.depthTexture;
   mrtUniforms.ka.value = new THREE.Vector4(mi.ka[0], mi.ka[1], mi.ka[2], 1.0);
   mrtUniforms.kd.value = new THREE.Vector4(mi.kd[0], mi.kd[1], mi.kd[2], 1.0);
@@ -279,7 +267,7 @@ function createRenderer() {
   // Create a multi render target with Float buffers
   renderTarget = new THREE.WebGLMultiRenderTarget(
     container.clientWidth, container.clientHeight,
-    7);
+    4);
   renderTarget.texture.format = THREE.RGBAFormat;
   renderTarget.texture.minFilter = THREE.NearestFilter;
   renderTarget.texture.magFilter = THREE.NearestFilter;
