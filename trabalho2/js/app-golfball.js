@@ -24,7 +24,7 @@ let lights;
 let clock;
 
 // FIXME: Remove when everything is working
-const useOnlyGBufferFS = false;
+const useOnlyGBufferFS = true;
 
 // Injecting text code inside the element
 function injectTextIntoPage() {
@@ -68,7 +68,7 @@ function init() {
   // scene.background = new THREE.Color( 0x000000 );
 
   postScene = new THREE.Scene();
-  postScene.background = new THREE.Color( 0x00FF00 );
+  postScene.background = new THREE.Color( 0x000000 );
 
   createCamera();
   createControls();
@@ -199,17 +199,20 @@ function createMaterial() {
     tNormal: {
       value: renderTarget.textures[1]
     },
-    tTangent: {
+    tBinormal: {
       value: renderTarget.textures[2]
     },
-    tTangentPosition: {
+    tTangent: {
       value: renderTarget.textures[3]
     },
-    tTangentCameraPos: {
+    tPosition: {
       value: renderTarget.textures[4]
+    },
+    tCameraPos: {
+      value: renderTarget.textures[5]
     },    
     tBumpMap: {
-      value: renderTarget.textures[5] 
+      value: renderTarget.textures[6] 
     },
     tDepth: {
       value: renderTarget.depthTexture 
@@ -228,10 +231,11 @@ function createMaterial() {
   mrtUniforms = THREE.UniformsUtils.merge([mrtUniforms, THREE.UniformsLib['lights']]);
   mrtUniforms.tColor.value = renderTarget.textures[0];
   mrtUniforms.tNormal.value = renderTarget.textures[1];
-  mrtUniforms.tTangent.value = renderTarget.textures[2];
-  mrtUniforms.tTangentPosition.value = renderTarget.textures[3];
-  mrtUniforms.tTangentCameraPos.value = renderTarget.textures[4];
-  mrtUniforms.tBumpMap.value = renderTarget.textures[5];
+  mrtUniforms.tBinormal.value = renderTarget.textures[2];
+  mrtUniforms.tTangent.value = renderTarget.textures[3];
+  mrtUniforms.tPosition.value = renderTarget.textures[4];
+  mrtUniforms.tCameraPos.value = renderTarget.textures[5];
+  mrtUniforms.tBumpMap.value = renderTarget.textures[6];
   mrtUniforms.tDepth.value = renderTarget.depthTexture;
   mrtUniforms.ka.value = new THREE.Vector4(mi.ka[0], mi.ka[1], mi.ka[2], 1.0);
   mrtUniforms.kd.value = new THREE.Vector4(mi.kd[0], mi.kd[1], mi.kd[2], 1.0);
@@ -274,10 +278,8 @@ function createRenderer() {
 
   // Create a multi render target with Float buffers
   renderTarget = new THREE.WebGLMultiRenderTarget(
-    // window.innerWidth * window.devicePixelRatio,
-    // window.innerHeight * window.devicePixelRatio,
     container.clientWidth, container.clientHeight,
-    6);
+    7);
   renderTarget.texture.format = THREE.RGBAFormat;
   renderTarget.texture.minFilter = THREE.NearestFilter;
   renderTarget.texture.magFilter = THREE.NearestFilter;

@@ -113,8 +113,7 @@
       attribute vec4 tangent;
       
       out vec2 vUv;                   // texture coordinates
-      out vec3 tangentCameraPosition; // camera position in tangent space
-      out vec3 tangentFragPos;        // vertex position in tangent space
+      out vec3 fragPos;        // vertex position in tangent space
       out mat3 TBN;                   // Tangent Binormal Normal matrix
       out vec3 N;                     // normals
       out vec3 T;                     // tangents
@@ -122,17 +121,18 @@
       void main() 
       {
         
+        // Generating binormal vector
+        vec4 binormal = normalize( vec4( cross(normal, tangent.xyz), 0.0 ) );
+
         // Gerenating Inverted Tangent Binormal Normal matrix
-        T = normalize(vec3(normalMatrix * tangent.xyz));
-        N = normalize(vec3(normalMatrix * normal));
-        vec3 B = normalize( cross(N, T) );
-        TBN = transpose( mat3(T, B, N) );
+        vec3 B;
+        T = normalize(vec3(modelMatrix * tangent));
+        B = normalize(vec3(modelMatrix * binormal));
+        N = normalize(vec3(modelMatrix * vec4(normal, 0.0)));
+        TBN = ( mat3(T, B, N) );
         
         // Position in world coordinates
-        vec3 fragPos = vec3( modelMatrix * vec4(position, 1.0) );
-
-        tangentCameraPosition = TBN * cameraPosition;
-        tangentFragPos = TBN * fragPos;
+        fragPos = vec3( modelMatrix * vec4(position, 1.0) );
 
         // Just repassing the texture coordinates
         vUv = uv;
@@ -154,8 +154,7 @@
 
     in vec4 color;                 // diffuse color
     in vec2 vUv;                   // texture coordinates
-    in vec3 tangentCameraPosition; // camera position in tangent space
-    in vec3 tangentFragPos;        // vertex position in tangent space
+    in vec3 fragPos;               // vertex position
     in mat3 TBN;                   // Tangent Binormal Normal matrix
     in vec3 N;                     // normals
     in vec3 T;                     // tangents
@@ -175,10 +174,11 @@
     // GBuffer outputs
     layout(location=0) out vec4 gColor;
     layout(location=1) out vec3 gNormal;
-    layout(location=2) out vec3 gTangent;
-    layout(location=3) out vec3 gTangentPosition;
-    layout(location=4) out vec3 gTangentCameraPos;
-    layout(location=5) out vec3 gBumpMap;
+    layout(location=2) out vec3 gBinormal;
+    layout(location=3) out vec3 gTangent;
+    layout(location=4) out vec3 gPosition;
+    layout(location=5) out vec3 gCameraPos;
+    layout(location=6) out vec3 gBumpMap;
 
     void main() 
     {
@@ -186,17 +186,12 @@
       gColor = kd;
       gNormal = N;
       gTangent = T;
-      gTangentPosition = tangentFragPos;
-      gTangentCameraPos = tangentCameraPosition;
+      gBinormal = normalize( cross(N,T) );
+      gPosition = fragPos;
+      gCameraPos = cameraPosition;
       gBumpMap = texture2D(bumpTex, vUv).xyz;
 
-      //gColor.rgb = N.rgb;
-      //gColor = texture2D(bumpTex, vUv);
-      //gColor.rgb = gTangentCameraPos;
-
     #ifdef TRY_ON_GBUFFER_FS
-      vec3 B = normalize( cross(N, T) );
-      mat3 TBN = transpose( mat3(T, B, N) );
 
       // Obtain normal from normal map in range [0,1]
       vec3 normalTex = texture2D(bumpTex, vUv).xyz;
@@ -204,11 +199,14 @@
       // Transform normal vector to range [-1,1]
       vec3 normal = normalize(-1.0 + 2.0*normalTex);
 
+      // Normal in world space
+      normal = normalize( TBN * normal );
+
       vec4 finalColor = vec4(0.0, 0.0, 0.0, 1.0);
       for(int i=0; i < NUM_POINT_LIGHTS; i++)
       {
-        vec3 tanLightPos = TBN * pointLights[i].position;
-        vec3 lightDir = normalize( tanLightPos - tangentFragPos );
+        vec3 tanLightPos = pointLights[i].position;
+        vec3 lightDir = normalize( tanLightPos - fragPos );
 
         // Compute lighting
         float NdotL = dot( lightDir, normal );
@@ -216,7 +214,7 @@
         // Calculate specular
         float spec = 0.0;
         if ( NdotL > 0.0 ) {
-          vec3 viewDir = normalize( tangentCameraPosition - tangentFragPos );
+          vec3 viewDir = normalize( cameraPosition - fragPos );
           vec3 halfVector = normalize( lightDir + viewDir );
           spec = pow( max( dot( normal, halfVector ), 0.0 ), shi );
         }
@@ -270,33 +268,35 @@
 
       uniform sampler2D tColor;
       uniform sampler2D tNormal;
+      uniform sampler2D tBinormal;
       uniform sampler2D tTangent;
-      uniform sampler2D tTangentPosition;
-      uniform sampler2D tTangentCameraPos;
+      uniform sampler2D tPosition;
+      uniform sampler2D tCameraPos;
       uniform sampler2D tDepth;
       uniform sampler2D tBumpMap;
 
       void main() {
 
-        vec3 T = texture2D(tTangent, vUv).xyz;
-        vec3 N = texture2D(tNormal, vUv).xyz;
-        vec3 B = normalize( cross(N, T) );
+        vec3 T = normalize(texture2D(tTangent, vUv).xyz);
+        vec3 B = normalize(texture2D(tBinormal, vUv).xyz);
+        vec3 N = normalize(texture2D(tNormal, vUv).xyz);
         mat3 TBN = transpose( mat3(T, B, N) );
 
-        vec3 tangentFragPos = texture2D(tTangentPosition, vUv).xyz;
-        vec3 tangentCameraPosition = texture2D(tTangentCameraPos, vUv).xyz;
+        vec3 fragPos = texture2D(tPosition, vUv).xyz;
+        vec3 cameraPos = texture2D(tCameraPos, vUv).xyz;
 
         // Obtain normal from normal map in range [0,1]
         vec3 normalTex = texture2D(tBumpMap, vUv).xyz;
   
         // Transform normal vector to range [-1,1]
         vec3 normal = normalize(-1.0 + 2.0*normalTex);
+        normal = normalize( TBN * normal );
 
         vec4 finalColor = vec4(0.0, 0.0, 0.0, 1.0);
         for(int i=0; i < NUM_POINT_LIGHTS; i++)
         {
-          vec3 tanLightPos = TBN * pointLights[i].position;
-          vec3 lightDir = normalize( tanLightPos - tangentFragPos );
+          vec3 lightPos =  pointLights[i].position;
+          vec3 lightDir = normalize( lightPos - fragPos );
 
           // Compute lighting
           float NdotL = dot( lightDir, normal );
@@ -304,7 +304,7 @@
           // Calculate specular
           float spec = 0.0;
           if ( NdotL > 0.0 ) {
-            vec3 viewDir = normalize( tangentCameraPosition - tangentFragPos );
+            vec3 viewDir = normalize( cameraPos - fragPos );
             vec3 halfVector = normalize( lightDir + viewDir );
             spec = pow( max( dot( normal, halfVector ), 0.0 ), shi );
           }
@@ -323,7 +323,7 @@
 
         // final color      
         out_FragColor = ka + finalColor;
-        out_FragColor = vec4(normalTex, 1.0);
+        //out_FragColor = vec4(normal, 1.0);
 
       }
     </script>
