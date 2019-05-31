@@ -217,8 +217,8 @@ function createMaterial() {
   postUniforms.tPosition.value = renderTarget.textures[2];
   postUniforms.tNormal.value = renderTarget.textures[3];
   postUniforms.tDepth.value = renderTarget.depthTexture;
-  postUniforms.ka.value = new THREE.Vector4(mi.ka[0], mi.ka[1], mi.ka[2], 1.0);
-  postUniforms.kd.value = new THREE.Vector4(mi.kd[0], mi.kd[1], mi.kd[2], 1.0);
+  postUniforms.ka.value = new THREE.Vector4(0.0,0.0,0.0,0.0); //(mi.ka[0], mi.ka[1], mi.ka[2], 1.0);
+  postUniforms.kd.value = new THREE.Vector4(1.0,1.0,1.0,1.0); //(mi.kd[0], mi.kd[1], mi.kd[2], 1.0);
   postUniforms.ks.value = new THREE.Vector4(mi.ks[0], mi.ks[1], mi.ks[2], 1.0);
   postUniforms.shi.value = mi.ns/0.4;
   postUniforms.cameraPos.value = camera.position;
