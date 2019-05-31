@@ -24,8 +24,11 @@ let lights;
 let clock;
 let postUniforms;
 
+let enableRotModel = false;
+
 // FIXME: Remove when everything is working
 const useOnlyGBufferFS = false;
+
 
 // Injecting text code inside the element
 function injectTextIntoPage() {
@@ -287,7 +290,9 @@ function update() {
   // Don't delete this function!
 
   if (typeof(model) !== 'undefined') {
-    // model.rotation.y += 0.01;
+    if (enableRotModel) {
+      model.rotation.y += 0.01;
+    }
     postUniforms.cameraPos.value = camera.position;
   }
   
@@ -323,47 +328,49 @@ function render() {
 // 
 function createGui() {
   
-  gui = new dat.GUI();
-  // const params = {
-    // 'light color': spotLight.color.getHex(),
-    // intensity: spotLight.intensity,
-    // distance: spotLight.distance,
-    // angle: spotLight.angle,
-    // penumbra: spotLight.penumbra,
-    // decay: spotLight.decay
-  // };
+  let gui = new dat.GUI();
 
-  // gui.addColor( params, 'light color' ).onChange( function ( val ) {
-  //   spotLight.color.setHex( val );
-  //   render();
-  // } );
+  let params = {
+    'Show': 'Final color',
+    'Rotation': false,
+  };  
+  
+  // let gbFolder = gui.addFolder("G-Buffer");
 
-  // gui.add( params, 'intensity', 0, 2 ).onChange( function ( val ) {
-  //   spotLight.intensity = val;
-  //   render();
-  // } );
+  let gBufferToShow = gui.add(params, 'Show', [ 
+    'Final color', 'Position', 'Normal map', 'Vertex normal', 'Vertex color', 'Depth' 
+  ]);
 
-  // gui.add( params, 'distance', 50, 200 ).onChange( function ( val ) {
-  //   spotLight.distance = val;
-  //   render();
-  // } );
+  gBufferToShow.onChange( function (key) {
+    let val = 0;
+    switch (key) {
+      case 'Final color':
+        val = 0;
+        break;
+      case 'Position':
+        val = 1;
+        break;
+      case 'Normal map':
+        val = 2;
+        break;
+      case 'Vertex normal':
+        val = 3;
+        break;
+      case 'Vertex color':
+        val = 4;
+        break;
+      case 'Depth':
+        val = 5;
+        break;
+      default:
+        break;
+    }
+    postUniforms.gBufferToShow.value = val;
+  });
 
-  // gui.add( params, 'angle', 0, Math.PI / 3 ).onChange( function ( val ) {
-  //   spotLight.angle = val;
-  //   render();
-  // } );
-
-  // gui.add( params, 'penumbra', 0, 1 ).onChange( function ( val ) {
-  //   spotLight.penumbra = val;
-  //   render();
-  // } );
-
-  // gui.add( params, 'decay', 1, 2 ).onChange( function ( val ) {
-  //   spotLight.decay = val;
-  //   render();
-  // } );
-
-  gui.open();
+  gui.add(params, 'Rotation', false).onChange( function (val) {
+    enableRotModel = val;
+  });
 }
 
 //
