@@ -217,6 +217,7 @@
       uniform float shi;             // shininess from model file
       uniform vec3 cameraPos;        // gbuffer camera position
       uniform int gBufferToShow;     // show saved gbuffer
+      uniform bool useSpecular;      // Enable or disable specular
       uniform bool useMaskColor;     // Enable or disable mask color
       uniform vec4 maskColor;        // mask used to paint only the model
       uniform vec4 backgroundColor;  // mask used to paint only the quad
@@ -259,7 +260,7 @@
 
             // Calculate specular
             float spec = 0.0;
-            if ( NdotL > 0.0 ) {
+            if ( NdotL > 0.0 && useSpecular) {
               vec3 viewDir = normalize( cameraPos - fragPos );
               vec3 halfVector = normalize( lightDir + viewDir );
               spec = pow( max( dot( normal, halfVector ), 0.0 ), shi );

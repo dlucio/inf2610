@@ -177,13 +177,8 @@ function createMaterial() {
     uniforms: gBufferUniforms,
     vertexShader: document.getElementById("gvs").textContent.trim(),
     fragmentShader: document.getElementById("gfs").textContent.trim(),
-    // vertexShader: document.getElementById("gbuffer-vert").textContent.trim(),
-    // fragmentShader: document.getElementById("gbuffer-frag").textContent.trim(),
-    lights: useOnlyGBufferFS,
+    lights: false,
     vertexTangents: true, // https://threejs.org/docs/#api/en/materials/Material.vertexTangents
-    defines: {
-      TRY_ON_GBUFFER_FS: useOnlyGBufferFS,
-    },
   });
 
 
@@ -214,6 +209,7 @@ function createMaterial() {
   postUniforms.maskColor = new THREE.Uniform();
   postUniforms.backgroundColor = new THREE.Uniform();
   postUniforms.useMaskColor = new THREE.Uniform();
+  postUniforms.useSpecular = new THREE.Uniform();
   
   
   // Tip from: https://github.com/mrdoob/three.js/issues/8016#issuecomment-194935980
@@ -232,6 +228,7 @@ function createMaterial() {
   postUniforms.maskColor.value = new THREE.Vector4(0.0, 0.0, 0.0, 1.0);
   postUniforms.backgroundColor.value = new THREE.Vector4(1.0, 1.0, 1.0, 1.0);
   postUniforms.useMaskColor.value = true;
+  postUniforms.useSpecular.value = true;
 
   postMaterial = new THREE.ShaderMaterial({
     vertexShader: document.getElementById('render-vert').textContent.trim(),
@@ -320,17 +317,13 @@ function update() {
 // render, or 'draw a still image', of the scene
 function render() {
   
-  if (useOnlyGBufferFS) {
-    renderer.render( scene, camera );
-  } else {
-    // render scene into target
-    renderer.setRenderTarget(renderTarget);
-    renderer.render(scene, camera);
-    
-    // render post FX
-    renderer.setRenderTarget(null);
-    renderer.render(postScene, postCamera);
-  }
+  // render scene into target
+  renderer.setRenderTarget(renderTarget);
+  renderer.render(scene, camera);
+  
+  // render post FX
+  renderer.setRenderTarget(null);
+  renderer.render(postScene, postCamera);
   
 }
 
@@ -343,6 +336,7 @@ function createGui() {
     'Show': 0,
     'Rotate': false,
     'Use Mask': true,
+    'Use Specular': true,
     'Mask' : "#000000",
     'Background': "#FFFFFF",
     'Shiness': 250.0,
@@ -395,6 +389,10 @@ function createGui() {
 
   gui.add(params, 'Use Mask', false).onChange( function (val) {
     postUniforms.useMaskColor.value = val;
+  });
+
+  gui.add(params, 'Use Specular', true).onChange( function (val) {
+    postUniforms.useSpecular.value = val;
   });
 }
 
