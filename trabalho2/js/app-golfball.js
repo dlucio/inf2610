@@ -341,10 +341,12 @@ function createGui() {
 
   let params = {
     'Show': 0,
-    'Rotation': false,
+    'Rotate': false,
     'Use Mask': true,
     'Mask' : "#000000",
-    'Background': "#FFFFFF"
+    'Background': "#FFFFFF",
+    'Shiness': 250.0,
+    'Intensity': 0.11125,
   };  
   
   // let gbFolder = gui.addFolder("G-Buffer");
@@ -377,7 +379,17 @@ function createGui() {
     
   });
 
-  gui.add(params, 'Rotation', false).onChange( function (val) {
+  gui.add(params, 'Shiness', 250.0).min(0).onChange( function (val) {
+    postUniforms.shi.value = val;
+  });
+
+  gui.add(params, 'Intensity', 0.0, 1.0).step(0.01).onChange( function (val) {
+    lights.forEach(light => {
+      light.intensity = val;
+    });
+  });
+
+  gui.add(params, 'Rotate', false).onChange( function (val) {
     enableRotModel = val;
   });
 
