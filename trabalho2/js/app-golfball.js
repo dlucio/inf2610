@@ -136,9 +136,9 @@ function createLights() {
     const z = Math.cos(getRandomArbitrary(-pi, pi)) * getRandomArbitrary(-50.0, 50.0);
 
     // also calculate random color
-    const r = getRandomArbitrary(0.5, 1.0); // between 0.5 and 1.0
-    const g = getRandomArbitrary(0.5, 1.0); // between 0.5 and 1.0
-    const b = getRandomArbitrary(0.5, 1.0); // between 0.5 and 1.0
+    const r = getRandomArbitrary(0.1, 1.0); // between 0.1 and 1.0
+    const g = getRandomArbitrary(0.1, 1.0); // between 0.1 and 1.0
+    const b = getRandomArbitrary(0.1, 1.0); // between 0.1 and 1.0
 
     const color = new THREE.Color(r,g,b);
 
