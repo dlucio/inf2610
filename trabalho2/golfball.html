@@ -120,7 +120,6 @@
       out vec2 vUv;     // texture coordinates
       out vec3 fragPos; // vertex position
       out mat3 TBN;     // Tangent Binormal Normal matrix
-
       out vec3 vNormal; // vertex normal
 
       void main() 
@@ -156,7 +155,6 @@
     in vec3 vNormal;               // vertex normal
     in mat3 TBN;                   // Tangent Binormal Normal matrix
     
-    uniform vec4 kd;               // diffuse color from model file
     uniform vec4 maskColor;        // mask color
     uniform sampler2D bumpTex;     // normal texture
 
@@ -184,8 +182,9 @@
     
     <!-- Read G-Buffer and render to screen -->
     <script id="render-vert" type="x-shader/x-vertex">
-    #version 300 es
+      #version 300 es
 
+      // Texture coordinates
       out vec2 vUv;
 
       void main() {
@@ -207,8 +206,10 @@
       // Point light array injected by Three.js
       uniform PointLight pointLights[NUM_POINT_LIGHTS];
       
+      // Final color
       layout(location = 0) out vec4 out_FragColor;
 
+      // Texture coordinates
       in vec2 vUv;
 
       uniform vec4 ka;               // ambient color from model file
@@ -231,8 +232,8 @@
 
       void main() {
 
-        vec3 normal = texture2D(tNormalMap, vUv).xyz;
         vec3 fragPos = texture2D(tPosition, vUv).xyz;
+        vec3 normal = texture2D(tNormalMap, vUv).xyz;
 
         // Only for debug
         vec3 normalMapColor = normal;
@@ -245,7 +246,7 @@
 
         vec4 finalColor = backgroundColor;
         
-        // Paint only the model
+        // Only paint model, if mask is not used
         if (color == maskColor || !useMaskColor)
         {
           finalColor = vec4(0.0, 0.0, 0.0, 1.0);
