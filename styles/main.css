@@ -26,10 +26,10 @@ a:hover {
 }
 
 #scene-container {
-  margin-top: 5em;
+  margin-top: 1em;
   height: 40em;
   min-width: 35em;
-  top: 20em;
+  top: 2em;
 }
 
 .title {
