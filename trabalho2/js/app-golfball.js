@@ -23,6 +23,7 @@ let postModel;
 let lights;
 let clock;
 let postUniforms;
+let gBufferUniforms
 
 let enableRotModel = false;
 
@@ -161,14 +162,16 @@ function createMaterial() {
   const texture = textureLoader.load( materialInfo.bumpTex );
   texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
 
-  let gBufferUniforms = {}
+  gBufferUniforms = {}
   gBufferUniforms.kd = new THREE.Uniform();
   gBufferUniforms.bumpTex = new THREE.Uniform();
+  gBufferUniforms.maskColor = new THREE.Uniform();
 
   // Tip from: https://github.com/mrdoob/three.js/issues/8016#issuecomment-194935980
   gBufferUniforms = THREE.UniformsUtils.merge([gBufferUniforms, THREE.UniformsLib['lights']]);
   gBufferUniforms.bumpTex.value = texture;
   gBufferUniforms.kd.value = new THREE.Vector4(mi.kd[0], mi.kd[1], mi.kd[2], 1.0);
+  gBufferUniforms.maskColor.value = new THREE.Vector4(0.0, 0.0, 0.0, 1.0);
 
   gBufferMaterial = new THREE.ShaderMaterial({
     uniforms: gBufferUniforms,
@@ -208,6 +211,9 @@ function createMaterial() {
   postUniforms.shi = new THREE.Uniform();
   postUniforms.cameraPos = new THREE.Uniform();
   postUniforms.gBufferToShow = new THREE.Uniform();
+  postUniforms.maskColor = new THREE.Uniform();
+  postUniforms.backgroundColor = new THREE.Uniform();
+  postUniforms.useMaskColor = new THREE.Uniform();
   
   
   // Tip from: https://github.com/mrdoob/three.js/issues/8016#issuecomment-194935980
@@ -223,6 +229,9 @@ function createMaterial() {
   postUniforms.shi.value = mi.ns/0.4;
   postUniforms.cameraPos.value = camera.position;
   postUniforms.gBufferToShow.value = 0;
+  postUniforms.maskColor.value = new THREE.Vector4(0.0, 0.0, 0.0, 1.0);
+  postUniforms.backgroundColor.value = new THREE.Vector4(1.0, 1.0, 1.0, 1.0);
+  postUniforms.useMaskColor.value = true;
 
   postMaterial = new THREE.ShaderMaterial({
     vertexShader: document.getElementById('render-vert').textContent.trim(),
@@ -331,45 +340,49 @@ function createGui() {
   let gui = new dat.GUI();
 
   let params = {
-    'Show': 'Final color',
+    'Show': 0,
     'Rotation': false,
+    'Use Mask': true,
+    'Mask' : "#000000",
+    'Background': "#FFFFFF"
   };  
   
   // let gbFolder = gui.addFolder("G-Buffer");
 
-  let gBufferToShow = gui.add(params, 'Show', [ 
-    'Final color', 'Position', 'Normal map', 'Vertex normal', 'Vertex color', 'Depth' 
-  ]);
+  let gBufferToShow = gui.add(params, 'Show', { 
+    'Final color': 0, 
+    'Position': 1,
+    'Normal map': 2,
+    'Vertex normal':3,
+    'Vertex color (mask)':4,
+    'Depth':5 
+  });
 
-  gBufferToShow.onChange( function (key) {
-    let val = 0;
-    switch (key) {
-      case 'Final color':
-        val = 0;
-        break;
-      case 'Position':
-        val = 1;
-        break;
-      case 'Normal map':
-        val = 2;
-        break;
-      case 'Vertex normal':
-        val = 3;
-        break;
-      case 'Vertex color':
-        val = 4;
-        break;
-      case 'Depth':
-        val = 5;
-        break;
-      default:
-        break;
-    }
+  gBufferToShow.onChange( function (val) {
     postUniforms.gBufferToShow.value = val;
+  });
+
+  gui.addColor(params, 'Mask', "#000000").onChange( function (color) {
+    const c = new THREE.Color(color)
+    const maskColor = new THREE.Vector4(c.r, c.g, c.b, c.a);
+    gBufferUniforms.maskColor.value = maskColor;
+    postUniforms.maskColor.value = maskColor;
+    
+  });
+
+  gui.addColor(params, 'Background', "#FFFFFF").onChange( function (color) {
+    const c = new THREE.Color(color)
+    const backgroundColor = new THREE.Vector4(c.r, c.g, c.b, c.a);
+    postUniforms.backgroundColor.value = backgroundColor;
+    
   });
 
   gui.add(params, 'Rotation', false).onChange( function (val) {
     enableRotModel = val;
+  });
+
+  gui.add(params, 'Use Mask', false).onChange( function (val) {
+    postUniforms.useMaskColor.value = val;
   });
 }
 

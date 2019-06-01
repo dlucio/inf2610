@@ -121,7 +121,7 @@
       out vec3 fragPos; // vertex position
       out mat3 TBN;     // Tangent Binormal Normal matrix
 
-      out vec3 vNormal;  // vertex normal
+      out vec3 vNormal; // vertex normal
 
       void main() 
       {
@@ -156,7 +156,8 @@
     in vec3 vNormal;               // vertex normal
     in mat3 TBN;                   // Tangent Binormal Normal matrix
     
-    uniform vec4 kd;               // diffuse color
+    uniform vec4 kd;               // diffuse color from model file
+    uniform vec4 maskColor;        // mask color
     uniform sampler2D bumpTex;     // normal texture
 
     // G-Buffer outputs
@@ -176,7 +177,7 @@
       gNormalMap = normalize( TBN * gNormalMap );
       
       // G-Buffer output for debug
-      gColor = vec4(0.0,0.0,0.0,1.0); //kd;
+      gColor = maskColor;
       gNormal = vNormal;
     }
   </script>
@@ -210,12 +211,15 @@
 
       in vec2 vUv;
 
-      uniform vec4 ka;               // ambient color
-      uniform vec4 kd;               // diffuse color
-      uniform vec4 ks;               // specular color
-      uniform float shi;             // shininess
+      uniform vec4 ka;               // ambient color from model file
+      uniform vec4 kd;               // diffuse color from model file
+      uniform vec4 ks;               // specular color from model file
+      uniform float shi;             // shininess from model file
       uniform vec3 cameraPos;        // gbuffer camera position
-      uniform int gBufferToShow;     // show saved gbuffer 
+      uniform int gBufferToShow;     // show saved gbuffer
+      uniform bool useMaskColor;     // Enable or disable mask color
+      uniform vec4 maskColor;        // mask used to paint only the model
+      uniform vec4 backgroundColor;  // mask used to paint only the quad
 
       uniform sampler2D tColor;      // vertex color
       uniform sampler2D tNormalMap;  // normals from normal map texture
@@ -235,17 +239,16 @@
         // Set normal from normal map in range [0,1]
         normal = normalize(-1.0 + 2.0*normal);
 
+        // Get vertex color that is used as a mask
         vec4 color = vec4(texture2D(tColor, vUv).rgb, 1.0);
-        vec4 maskColor = vec4(0.0, 0.0, 0.0, 1.0);
 
-        vec4 finalColor = vec4(0.0, 0.0, 0.0, 1.0);
-
-        // Only paint the model
-        if (color != maskColor) {
-          finalColor.a = 0.0;
-        }
-        else
+        vec4 finalColor = backgroundColor;
+        
+        // Paint only the model
+        if (color == maskColor || !useMaskColor)
         {
+          finalColor = vec4(0.0, 0.0, 0.0, 1.0);
+
           for(int i=0; i < NUM_POINT_LIGHTS; i++)
           {
             vec3 lightPos =  pointLights[i].position;
@@ -269,7 +272,7 @@
             finalColor += kd*diffuse + ks*spec;
             
           }
-      }
+        }
 
         // final color
         out_FragColor = ka + finalColor;
