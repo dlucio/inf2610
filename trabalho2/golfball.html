@@ -236,7 +236,7 @@
         vec3 normal = texture2D(tNormalMap, vUv).xyz;
 
         // Only for debug
-        vec3 normalMapColor = normal;
+        vec3 normalMapColor = abs(normal);
 
         // Set normal from normal map in range [0,1]
         normal = normalize(-1.0 + 2.0*normal);
