@@ -300,6 +300,7 @@
         else if (gBufferToShow == 5) {
           // depth
           vec4 depth = texture( tDepth, vUv ).rgba;
+          depth.r = depth.r + 0.4;
           out_FragColor = vec4(depth.r, depth.r, depth.r, 1.0);
         }
 

@@ -327,6 +327,30 @@ function render() {
   
 }
 
+// SSAO
+// TODO: Colocar o código no lugar certo!
+function prepareToSSAO() {
+  // Configure G-Buffer framebuffer
+  // Probably already:
+  //  - position color buffer
+  //  - normal color buffer
+  //  - color + specular color buffer (maybe will not used)
+  //  - create and attach depth buffer
+
+  // Also create framebuffer to hold processing stage
+  //  - SSAO color buffer
+  //  - buffer for blur stage (maybe will not used)
+
+
+  // Generate sample kernel
+  // TODO
+  
+
+  // Generate noise texture
+  // TODO
+
+}
+
 // 
 function createGui() {
   
@@ -343,21 +367,22 @@ function createGui() {
     'Intensity': 0.11125,
   };  
   
-  // let gbFolder = gui.addFolder("G-Buffer");
-
+  
   let gBufferToShow = gui.add(params, 'Show', { 
+    'SSAO' : 100,
     'Final color': 0, 
     'Position': 1,
     'Normal map': 2,
-    'Vertex normal':3,
-    'Vertex color (mask)':4,
-    'Depth':5 
+    'Vertex normal': 3,
+    'Vertex color (mask)': 4,
+    'Depth': 5 
   });
 
+  
   gBufferToShow.onChange( function (val) {
     postUniforms.gBufferToShow.value = val;
   });
-
+  
   gui.addColor(params, 'Mask', "#000000").onChange( function (color) {
     const c = new THREE.Color(color)
     const maskColor = new THREE.Vector4(c.r, c.g, c.b, c.a);
@@ -365,35 +390,37 @@ function createGui() {
     postUniforms.maskColor.value = maskColor;
     
   });
-
+  
   gui.addColor(params, 'Background', "#FFFFFF").onChange( function (color) {
     const c = new THREE.Color(color)
     const backgroundColor = new THREE.Vector4(c.r, c.g, c.b, c.a);
     postUniforms.backgroundColor.value = backgroundColor;
     
   });
-
+  
   gui.add(params, 'Shiness', 250.0).min(0).onChange( function (val) {
     postUniforms.shi.value = val;
   });
-
+  
   gui.add(params, 'Intensity', 0.0, 1.0).step(0.01).onChange( function (val) {
     lights.forEach(light => {
       light.intensity = val;
     });
   });
-
+  
   gui.add(params, 'Rotate', false).onChange( function (val) {
     enableRotModel = val;
   });
-
+  
   gui.add(params, 'Use Mask', false).onChange( function (val) {
     postUniforms.useMaskColor.value = val;
   });
-
+  
   gui.add(params, 'Use Specular', true).onChange( function (val) {
     postUniforms.useSpecular.value = val;
   });
+
+  let ssaoFolder = gui.addFolder("SSAO");
 }
 
 //
