@@ -27,8 +27,8 @@ let gBufferUniforms
 
 let enableRotModel = false;
 
-// FIXME: Remove when everything is working
-const useOnlyGBufferFS = false;
+// Enable/Disable random light colors and light animations
+let lightFX = false;
 
 
 // Injecting text code inside the element
@@ -129,16 +129,23 @@ function createLights() {
   lights = new Array();
   for (let index = 0; index < numLights; index++) {
 
+    // TODO: Colocar as luzes em volta do cenário, usando coordenadas esféricas
+
     // calculate slightly random offsets
     const time = Date.now() * 0.0005;
     const x = Math.sin(getRandomArbitrary(-pi, pi)) * getRandomArbitrary(-450.0, 450.0);
     const y = Math.cos(getRandomArbitrary(-pi, pi)) * getRandomArbitrary(-450.0, 450.0);
     const z = Math.cos(getRandomArbitrary(-pi, pi)) * getRandomArbitrary(-450.0, 450.0);
 
-    // also calculate random color
-    const r = getRandomArbitrary(0.1, 1.0); // between 0.1 and 1.0
-    const g = getRandomArbitrary(0.1, 1.0); // between 0.1 and 1.0
-    const b = getRandomArbitrary(0.1, 1.0); // between 0.1 and 1.0
+    let r = 1.0;
+    let g = 1.0;
+    let b = 1.0;
+    if (lightFX) {
+      // also calculate random color
+      r = getRandomArbitrary(0.1, 1.0); // between 0.1 and 1.0
+      g = getRandomArbitrary(0.1, 1.0); // between 0.1 and 1.0
+      b = getRandomArbitrary(0.1, 1.0); // between 0.1 and 1.0
+    }
 
     const color = new THREE.Color(r,g,b);
 
@@ -157,7 +164,6 @@ function createLights() {
 
 function createMaterial() {
 
-  const mi = materialInfo;
   const textureLoader = new THREE.TextureLoader();
   const texture = textureLoader.load( materialInfo.bumpTex );
   texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
@@ -182,7 +188,7 @@ function createMaterial() {
   });
 
 
-  // MRT
+  // MRT (Multiple Render Target)
   postUniforms = {
     tColor: {
       value: renderTarget.textures[0]
@@ -222,7 +228,7 @@ function createMaterial() {
   postUniforms.ka.value = new THREE.Vector4(0.0,0.0,0.0,0.0); //(mi.ka[0], mi.ka[1], mi.ka[2], 1.0);
   postUniforms.kd.value = new THREE.Vector4(1.0,1.0,1.0,1.0); //(mi.kd[0], mi.kd[1], mi.kd[2], 1.0);
   postUniforms.ks.value = new THREE.Vector4(1.0, 1.0, 1.0, 1.0);
-  postUniforms.shi.value = mi.ns/0.4;
+  postUniforms.shi.value = 200.0; //materialInfo.ns/0.4;
   postUniforms.cameraPos.value = camera.position;
   postUniforms.gBufferToShow.value = 0;
   postUniforms.maskColor.value = new THREE.Vector4(0.0, 0.0, 0.0, 1.0);
@@ -237,7 +243,6 @@ function createMaterial() {
     lights: true
   });
 
-  // FIXME: Create a function for that?
   const mesh = new THREE.Mesh( new THREE.PlaneGeometry(2,2), postMaterial );
   postScene.add(mesh);
 }
@@ -302,14 +307,16 @@ function update() {
     postUniforms.cameraPos.value = camera.position;
   }
   
-  const time = Date.now() * 0.0005;
-  lights.forEach(light => {
-    
-    light.position.x = Math.sin(time * 0.7) * light.startPos.x;
-    light.position.y = Math.cos(time * 0.5) * light.startPos.y;
-    light.position.z = Math.cos(time * 0.4) * light.startPos.z;
-    
-  });
+  if (lightFX) {
+    const time = Date.now() * 0.0005;
+    lights.forEach(light => {
+      
+      light.position.x = Math.sin(time * 0.7) * light.startPos.x;
+      light.position.y = Math.cos(time * 0.5) * light.startPos.y;
+      light.position.z = Math.cos(time * 0.4) * light.startPos.z;
+      
+    });
+  }
   
   
 }
@@ -478,15 +485,15 @@ function loadModelAndMaterial() {
     objLoader.load( 'models/pony_cartoon/Pony_cartoon.obj', obj => onObjLoad( obj, ponyCartoonPosition, ponyCartoonScale ), onProgress, onError );
 
     // Modelo adicional para testes com o SSAO
-    // s = 0.45;
-    // const superHumanPosition = new THREE.Vector3( 0, 0, 0 );
-    // const superHumanScale = new THREE.Vector3( s, s, s );
+    s = 0.45;
+    const superHumanPosition = new THREE.Vector3( 0, 0, 0 );
+    const superHumanScale = new THREE.Vector3( s, s, s );
     // objLoader.load( 'models/super_human/super_human.obj', obj => onObjLoad( obj, superHumanPosition, superHumanScale ), onProgress, onError );
 
     // Modelo adicional para testes com o SSAO
-    // s = 10.00;
-    // const mechM6kPosition = new THREE.Vector3( 0, 20, 0 );
-    // const mechM6kScale = new THREE.Vector3( s, s, s );
+    s = 10.00;
+    const mechM6kPosition = new THREE.Vector3( 0, 20, 0 );
+    const mechM6kScale = new THREE.Vector3( s, s, s );
     // objLoader.load( 'models/mech-m-6k/mech-m-6k.obj', obj => onObjLoad( obj, mechM6kPosition, mechM6kScale ), onProgress, onError );
 
   }
