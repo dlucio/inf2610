@@ -31,13 +31,10 @@ let ssaoMaterial;
 let ssaoUniforms;
 let ssaoScene;
 let ssaoRenderTarget;
-let kernelRadius = 8;
 let kernelSize = 32;
 let kernel = [];
 let noiseTexture = null;
 let output = 0;
-let minDistance = 0.005;
-let maxDistance = 0.1;
 
 let enableRotModel = false;
 
@@ -184,6 +181,7 @@ function createLights() {
 
 }
 
+/*
 function createMaterial() {
 
   const textureLoader = new THREE.TextureLoader();
@@ -268,20 +266,20 @@ function createMaterial() {
   const mesh = new THREE.Mesh( new THREE.PlaneGeometry(2,2), postMaterial );
   postScene.add(mesh);
 }
+*/
 
 function createSSAOMaterial() {
 
-  // const textureLoader = new THREE.TextureLoader();
-  // const texture = textureLoader.load( materialInfo.bumpTex );
-  // texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+  const textureLoader = new THREE.TextureLoader();
+  const texture = textureLoader.load( materialInfo.bumpTex );
+  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
 
   gBufferUniforms = {}
-  gBufferUniforms.kd = new THREE.Uniform();
   gBufferUniforms.bumpTex = new THREE.Uniform();
-  gBufferUniforms.maskColor = new THREE.Uniform();
+  gBufferUniforms.color = new THREE.Uniform();
 
   // Tip from: https://github.com/mrdoob/three.js/issues/8016#issuecomment-194935980
-  gBufferUniforms.maskColor.value = new THREE.Vector4(0.0, 0.0, 0.0, 1.0);
+  gBufferUniforms.color.value = new THREE.Vector4(0.95, 0.95, 0.95, 1.0);
 
   gBufferMaterial = new THREE.ShaderMaterial({
     uniforms: gBufferUniforms,
@@ -300,6 +298,9 @@ function createSSAOMaterial() {
     },
     gNormal: {
       value: gBufferRenderTarget.textures[2]
+    },
+    gNormalMap: {
+      value: gBufferRenderTarget.textures[3]
     },
     texNoise: {
       value: noiseTexture
@@ -335,11 +336,15 @@ function createSSAOMaterial() {
     },
     maxDistance: {
       value: 0.05
-    }
+    },
+    useNormalMap: {
+      value: false
+    },
   }
   // Tip from: https://github.com/mrdoob/three.js/issues/8016#issuecomment-194935980
   ssaoUniforms.gPosition.value = gBufferRenderTarget.textures[1];
   ssaoUniforms.gNormal.value = gBufferRenderTarget.textures[2];
+  ssaoUniforms.gNormalMap.value = gBufferRenderTarget.textures[3];
   ssaoUniforms.tDepth.value = gBufferRenderTarget.depthTexture;
   ssaoUniforms.texNoise.value = noiseTexture;
   ssaoUniforms.kernel.value = kernel;
@@ -352,6 +357,7 @@ function createSSAOMaterial() {
   ssaoUniforms.kernelRadius.value = 8;
   ssaoUniforms.minDistance.value = 0.005;
   ssaoUniforms.maxDistance.value = 0.05;
+  ssaoUniforms.useNormalMap.value = false;
 
   ssaoMaterial = new THREE.ShaderMaterial({
     vertexShader: document.getElementById('ssao-vs').textContent.trim(),
@@ -360,7 +366,7 @@ function createSSAOMaterial() {
     lights: false,
     defines: {
       PERSPECTIVE_CAMERA: 1,
-      KERNEL_SIZE: 32,
+      KERNEL_SIZE: kernelSize,
     }
   });
   const ssaoMesh = new THREE.Mesh( new THREE.PlaneGeometry(2,2), ssaoMaterial );
@@ -380,6 +386,9 @@ function createSSAOMaterial() {
     },
     tNormal: {
       value: gBufferRenderTarget.textures[2]
+    },
+    tNormalMap: {
+      value: texture
     },
     tDepth: {
       value: gBufferRenderTarget.depthTexture 
@@ -404,12 +413,11 @@ function createSSAOMaterial() {
   // Tip from: https://github.com/mrdoob/three.js/issues/8016#issuecomment-194935980
   postUniforms = THREE.UniformsUtils.merge([postUniforms, THREE.UniformsLib['lights']]);
   postUniforms.tColor.value = gBufferRenderTarget.textures[0];
-  // postUniforms.tNormalMap.value = gBufferRenderTarget.textures[1]; FIXME
   postUniforms.tPosition.value = gBufferRenderTarget.textures[1];
   postUniforms.tNormal.value = gBufferRenderTarget.textures[2];
+  postUniforms.tNormalMap.value = texture; // Normal map from image
   postUniforms.tDepth.value = gBufferRenderTarget.depthTexture;
   postUniforms.ssao.value = ssaoRenderTarget.texture[0];
-  // postUniforms.ssao.value = gBufferRenderTarget.textures[2];
   postUniforms.ka.value = new THREE.Vector4(0.0,0.0,1.0,1.0);
   postUniforms.kd.value = new THREE.Vector4(1.0,1.0,1.0,1.0); 
   postUniforms.ks.value = new THREE.Vector4(1.0, 1.0, 1.0, 1.0);
@@ -476,7 +484,7 @@ function createRenderer() {
 
   // Create a multi render target with Float buffers
   gBufferRenderTarget = new THREE.WebGLMultiRenderTarget(
-    container.clientWidth, container.clientHeight, 3);
+    container.clientWidth, container.clientHeight, 4);
   gBufferRenderTarget.texture.format = THREE.RGBAFormat;
   gBufferRenderTarget.texture.minFilter = THREE.NearestFilter;
   gBufferRenderTarget.texture.magFilter = THREE.NearestFilter;
@@ -492,6 +500,7 @@ function createRenderer() {
   gBufferRenderTarget.textures[0].name = 'diffuse';
   gBufferRenderTarget.textures[1].name = 'normal';
   gBufferRenderTarget.textures[2].name = 'position';
+  gBufferRenderTarget.textures[3].name = 'normalMap';
 
   container.appendChild( renderer.domElement );
 
@@ -536,7 +545,7 @@ function render() {
   renderer.render(ssaoScene, postCamera);
   
   // render post FX
-  // renderer.setRenderTarget(null);
+  renderer.setRenderTarget(null);
   // renderer.render(postScene, postCamera);
   
 }
@@ -636,6 +645,10 @@ function createGui() {
     'Background': "#FFFFFF",
     'Shiness': 250.0,
     'Intensity': 0.11125,
+    'Use Normal Map': false,
+    'Kernel Radius': 8,
+    'Minimal Distance': 0.005,
+    'Maximum Distance': 0.05,
   };  
   
   
@@ -683,6 +696,7 @@ function createGui() {
     enableRotModel = val;
   });
   
+  
   gui.add(params, 'Use Mask', false).onChange( function (val) {
     postUniforms.useMaskColor.value = val;
   });
@@ -690,8 +704,23 @@ function createGui() {
   gui.add(params, 'Use Specular', true).onChange( function (val) {
     postUniforms.useSpecular.value = val;
   });
-
+  
   let ssaoFolder = gui.addFolder("SSAO");
+  ssaoFolder.add(params, 'Use Normal Map', false).onChange( function (val) {
+    ssaoUniforms.useNormalMap.value = val;
+  });
+
+  ssaoFolder.add(params, 'Kernel Radius', 0.0).onChange( function (val) {
+    ssaoUniforms.kernelRadius.value = val;
+  });
+
+  ssaoFolder.add(params, 'Minimal Distance', 0.0).onChange( function (val) {
+    ssaoUniforms.minDistance.value = val;
+  });
+
+  ssaoFolder.add(params, 'Maximum Distance', 0.0).onChange( function (val) {
+    ssaoUniforms.maxDistance.value = val;
+  });
 }
 
 //
@@ -706,8 +735,6 @@ function loadModelAndMaterial() {
   const onObjLoad = ( obj, position, scale ) => {
 
     createSSAOMaterial();
-    // createMaterial(); 
-    
     
     model = obj.detail.loaderRootNode.children[0];
     model.position.copy( position );

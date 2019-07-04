@@ -121,9 +121,18 @@
       out vec2 vUv;     // texture coordinates
       out vec3 fragPos; // vertex position
       out vec3 vNormal; // vertex normal
+      out mat3 TBN;     // Tangent Binormal Normal matrix
 
       void main() 
       {
+        // Generating binormal vector
+        vec4 binormal = normalize( vec4( cross(normal, tangent.xyz), 0.0 ) );
+
+        // Gerenating Tangent Binormal Normal matrix
+        vec3 T = normalize(vec3(modelViewMatrix * tangent));
+        vec3 B = normalize(vec3(modelViewMatrix * binormal));
+        vec3 N = normalize(vec3(modelViewMatrix * vec4(normal, 0.0)));
+        TBN = ( mat3(T, B, N) );
         
         // Position in view coordinates
         vec4 viewPos = modelViewMatrix * vec4(position, 1.0);
@@ -145,11 +154,16 @@
     in vec2 vUv;                   // texture coordinates
     in vec3 fragPos;               // vertex position
     in vec3 vNormal;               // vertex normal
+    in mat3 TBN;                   // Tangent Binormal Normal matrix
+
+    uniform vec4 color;            // mask color
+    uniform sampler2D bumpTex;     // normal texture
     
     // G-Buffer outputs
     layout(location=0) out vec4 gColor;     // vertex color
     layout(location=1) out vec3 gPosition;  // vertex position
     layout(location=2) out vec3 gNormal;    // vertex normal
+    layout(location=3) out vec3 gNormalMap; // vertex normal map
 
     void main() 
     {
@@ -157,6 +171,10 @@
       gPosition = fragPos;
       gColor = vec4(0.95);
       gNormal = vNormal;
+      // Obtain normal from normal map in range [0,1]
+      vec3 normalTex = texture2D(bumpTex, vUv).xyz;
+      gNormalMap = normalize(-1.0 + 2.0*normalTex);
+      gNormalMap = normalize( TBN * gNormalMap );
     }
   </script>
 
@@ -185,6 +203,7 @@
 
     uniform sampler2D gPosition;   // vertex position from G-Buffer
     uniform sampler2D gNormal;     // vertex normal from G-Buffer
+    uniform sampler2D gNormalMap;     // vertex normal from G-Buffer
     uniform sampler2D tDepth;      // depth from G-Buffer
     uniform sampler2D texNoise;    // generated noise texture 
 
@@ -193,7 +212,6 @@
     uniform mat4 cameraProjectionMatrix;
     uniform mat4 cameraInverseProjectionMatrix;
     
-    uniform mat4 projection;
     uniform vec2 resolution;
     uniform vec3 kernel[KERNEL_SIZE];
 
@@ -201,6 +219,7 @@
 		uniform float minDistance;     // avoid artifacts caused by neighbour fragments with minimal depth difference
 		uniform float maxDistance;     // avoid the influence of fragments which are too far away
     
+    uniform bool useNormalMap;
     
     #include <packing>
     
@@ -234,7 +253,10 @@
     }
     
     vec3 getViewNormal( const in vec2 screenPosition ) {
-      return unpackRGBToNormal( texture2D( gNormal, screenPosition ).xyz );
+      if( useNormalMap )
+        return ( texture2D( gNormalMap, screenPosition ).xyz );
+      else
+        return unpackRGBToNormal( texture2D( gNormal, screenPosition ).xyz );
     }
     
     void main() {
@@ -281,7 +303,6 @@
 
       occlusion = clamp( occlusion / float( KERNEL_SIZE ), 0.0, 1.0 );
       out_FragColor = vec4( vec3( 1.0 - occlusion ), 1.0 );
-      //out_FragColor = vec4(viewNormal, 1.0);
     }
   </script>
 
@@ -415,7 +436,7 @@
       uniform vec4 backgroundColor;  // mask used to paint only the quad
 
       uniform sampler2D tColor;      // vertex color
-      //uniform sampler2D tNormalMap;  // normals from normal map texture
+      uniform sampler2D tNormalMap;  // normals from normal map texture
       uniform sampler2D tPosition;   // vertex position
 
       uniform sampler2D tNormal;     // vertex normal
@@ -424,8 +445,6 @@
 
       void main() {
 
-        out_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
-        
         // retrieve data from gbuffer
         vec3 Diffuse = texture(tColor, vUv).rgb;
         float AmbientOcclusion = texture(ssao, vUv).r;
@@ -434,14 +453,10 @@
         vec3 normal = texture2D(tNormal, vUv).xyz;
         
         // then calculate lighting as usual
-        //vec3 ambient = vec3(0.99 * Diffuse  * (AmbientOcclusion) );
+        //vec3 ambient = vec3(0.3 * Diffuse  * (AmbientOcclusion) );
         vec3 ambient = vec3( Diffuse );
         
         out_FragColor = vec4(Diffuse * AmbientOcclusion, 1.0);
-
-        /*
-
-
 
         // Only for debug
         vec3 normalMapColor = abs(normal);
@@ -511,7 +526,6 @@
           depth.r = depth.r + 0.4;
           out_FragColor = vec4(depth.r, depth.r, depth.r, 1.0);
         }
-        */
 
       }
     </script>
