@@ -304,22 +304,64 @@ function createSSAOMaterial() {
     texNoise: {
       value: noiseTexture
     },
-    samples: {
+    tDepth: {
+      value: gBufferRenderTarget.depthTexture 
+    },
+    kernel: {
       type: "v3v",
       value: kernel
     },
+    resolution: {
+      type: "v2",
+      value: new THREE.Vector2()
+    },
+    cameraNear: {
+      value: 0.1
+    },
+    cameraFar: {
+      value: 1000
+    },
+    cameraProjectionMatrix: {
+      value: new THREE.Matrix4()
+    },
+    cameraInverseProjectionMatrix: {
+      value: new THREE.Matrix4()
+    },
+    kernelRadius: {
+      value: 8
+    },
+    minDistance: {
+      value: 0.005
+    },
+    maxDistance: {
+      value: 0.05
+    }
   }
   // Tip from: https://github.com/mrdoob/three.js/issues/8016#issuecomment-194935980
   ssaoUniforms.gPosition.value = gBufferRenderTarget.textures[1];
   ssaoUniforms.gNormal.value = gBufferRenderTarget.textures[2];
+  ssaoUniforms.tDepth.value = gBufferRenderTarget.depthTexture;
   ssaoUniforms.texNoise.value = noiseTexture;
-  ssaoUniforms.samples.value = kernel;
+  ssaoUniforms.kernel.value = kernel;
+  ssaoUniforms.resolution.value.x = container.clientWidth;
+  ssaoUniforms.resolution.value.y = container.clientHeight;
+  ssaoUniforms.cameraNear.value = camera.near;
+  ssaoUniforms.cameraFar.value = camera.far;
+  ssaoUniforms.cameraProjectionMatrix.value = camera.projectionMatrix;
+  ssaoUniforms.cameraInverseProjectionMatrix.value.getInverse( camera.projectionMatrix );
+  ssaoUniforms.kernelRadius.value = 8;
+  ssaoUniforms.minDistance.value = 0.005;
+  ssaoUniforms.maxDistance.value = 0.05;
 
   ssaoMaterial = new THREE.ShaderMaterial({
     vertexShader: document.getElementById('ssao-vs').textContent.trim(),
     fragmentShader: document.getElementById('ssao-fs').textContent.trim(),
     uniforms: ssaoUniforms,
-    lights: false
+    lights: false,
+    defines: {
+      PERSPECTIVE_CAMERA: 1,
+      KERNEL_SIZE: 32,
+    }
   });
   const ssaoMesh = new THREE.Mesh( new THREE.PlaneGeometry(2,2), ssaoMaterial );
   ssaoScene.add(ssaoMesh);  
@@ -342,6 +384,10 @@ function createSSAOMaterial() {
     tDepth: {
       value: gBufferRenderTarget.depthTexture 
     },
+    ssao: {
+      value: ssaoRenderTarget.texture[0]
+    }
+
   }
   postUniforms.ka = new THREE.Uniform();
   postUniforms.kd = new THREE.Uniform();
@@ -358,14 +404,16 @@ function createSSAOMaterial() {
   // Tip from: https://github.com/mrdoob/three.js/issues/8016#issuecomment-194935980
   postUniforms = THREE.UniformsUtils.merge([postUniforms, THREE.UniformsLib['lights']]);
   postUniforms.tColor.value = gBufferRenderTarget.textures[0];
-  // postUniforms.tNormalMap.value = gBufferRenderTarget.textures[1];
-  postUniforms.tPosition.value = gBufferRenderTarget.textures[2];
-  postUniforms.tNormal.value = gBufferRenderTarget.textures[3];
+  // postUniforms.tNormalMap.value = gBufferRenderTarget.textures[1]; FIXME
+  postUniforms.tPosition.value = gBufferRenderTarget.textures[1];
+  postUniforms.tNormal.value = gBufferRenderTarget.textures[2];
   postUniforms.tDepth.value = gBufferRenderTarget.depthTexture;
-  postUniforms.ka.value = new THREE.Vector4(0.0,0.0,0.0,0.0); //(mi.ka[0], mi.ka[1], mi.ka[2], 1.0);
-  postUniforms.kd.value = new THREE.Vector4(1.0,1.0,1.0,1.0); //(mi.kd[0], mi.kd[1], mi.kd[2], 1.0);
+  postUniforms.ssao.value = ssaoRenderTarget.texture[0];
+  // postUniforms.ssao.value = gBufferRenderTarget.textures[2];
+  postUniforms.ka.value = new THREE.Vector4(0.0,0.0,1.0,1.0);
+  postUniforms.kd.value = new THREE.Vector4(1.0,1.0,1.0,1.0); 
   postUniforms.ks.value = new THREE.Vector4(1.0, 1.0, 1.0, 1.0);
-  postUniforms.shi.value = 200.0; //materialInfo.ns/0.4;
+  postUniforms.shi.value = 200.0;
   postUniforms.cameraPos.value = camera.position;
   postUniforms.gBufferToShow.value = 0;
   postUniforms.maskColor.value = new THREE.Vector4(0.0, 0.0, 0.0, 1.0);
@@ -484,12 +532,12 @@ function render() {
   renderer.render(scene, camera);
 
   // render scene into ssao
-  renderer.setRenderTarget(ssaoRenderTarget);
+  renderer.setRenderTarget(null);
   renderer.render(ssaoScene, postCamera);
   
   // render post FX
-  renderer.setRenderTarget(null);
-  renderer.render(postScene, postCamera);
+  // renderer.setRenderTarget(null);
+  // renderer.render(postScene, postCamera);
   
 }
 
@@ -658,6 +706,8 @@ function loadModelAndMaterial() {
   const onObjLoad = ( obj, position, scale ) => {
 
     createSSAOMaterial();
+    // createMaterial(); 
+    
     
     model = obj.detail.loaderRootNode.children[0];
     model.position.copy( position );
@@ -739,6 +789,7 @@ function onWindowResize() {
   // update the size of the renderer AND the canvas
   renderer.setSize( container.clientWidth, container.clientHeight );
   gBufferRenderTarget.setSize( container.clientWidth, container.clientHeight );
+  ssaoRenderTarget.setSize( container.clientWidth, container.clientHeight );
 
 }
 
