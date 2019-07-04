@@ -25,6 +25,15 @@ let clock;
 let postUniforms;
 let gBufferUniforms
 
+// For SSAO 
+let kernelRadius = 8;
+let kernelSize = 32;
+let kernel = [];
+let noiseTexture = null;
+let output = 0;
+let minDistance = 0.005;
+let maxDistance = 0.1;
+
 let enableRotModel = false;
 
 // Enable/Disable random light colors and light animations
@@ -68,6 +77,11 @@ function getRandomIntInclusive(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
+// Linear interpolation between a and b
+Math.lerp = (t, a, b) => {
+  return a + t * ( b - a );
+}
+
 function init() {
 
   injectTextIntoPage();
@@ -89,6 +103,8 @@ function init() {
   loadModelAndMaterial();
   createRenderer();
   createGui();
+
+  prepareToSSAO();
 
   // start the animation loop
   renderer.setAnimationLoop( () => {
@@ -348,14 +364,70 @@ function prepareToSSAO() {
   //  - SSAO color buffer
   //  - buffer for blur stage (maybe will not used)
 
-
   // Generate sample kernel
-  // TODO
+  function generateSampleKernel() {
+    for (let i = 0; i < kernelSize; i++) {
+
+      const sample = new THREE.Vector3();
+      sample.x = getRandomArbitrary(-1, 1);
+      sample.y = getRandomArbitrary(-1, 1);
+      sample.z = Math.random();
+
+      sample.normalize();
+
+      let scale = i / kernelSize;
+      scale = Math.lerp(0.1, 1, scale * scale);
+      sample.multiplyScalar(scale);
+
+      kernel.push(sample);
+
+    }
+
+  }
   
 
-  // Generate noise texture
-  // TODO
+  function generateRandomKernelRotations() {
 
+    const width = 4;
+    const height = 4;
+
+    if (SimplexNoise === undefined) {
+
+      console.error('The pass relies on SimplexNoise.');
+
+    }
+
+    const simplex = new SimplexNoise();
+
+    const size = width * height;
+    let data = new Float32Array(size * 4);
+
+    for (let i = 0; i < size; i++) {
+
+      const stride = i * 4;
+
+      const x = getRandomArbitrary(-1, 1);
+      const y = getRandomArbitrary(-1, 1);
+      const z = 0;
+
+      const noise = simplex.noise3d(x, y, z);
+
+      data[stride] = noise;
+      data[stride + 1] = noise;
+      data[stride + 2] = noise;
+      data[stride + 3] = 1;
+
+    }
+
+    noiseTexture = new THREE.DataTexture(data, width, height, THREE.RGBAFormat, THREE.FloatType);
+    noiseTexture.wrapS = THREE.RepeatWrapping;
+    noiseTexture.wrapT = THREE.RepeatWrapping;
+    noiseTexture.needsUpdate = true;
+
+  }
+
+  generateSampleKernel();
+  generateRandomKernelRotations();
 }
 
 // 
