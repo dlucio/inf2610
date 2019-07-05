@@ -181,93 +181,6 @@ function createLights() {
 
 }
 
-/*
-function createMaterial() {
-
-  const textureLoader = new THREE.TextureLoader();
-  const texture = textureLoader.load( materialInfo.bumpTex );
-  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-
-  gBufferUniforms = {}
-  gBufferUniforms.kd = new THREE.Uniform();
-  gBufferUniforms.bumpTex = new THREE.Uniform();
-  gBufferUniforms.maskColor = new THREE.Uniform();
-
-  // Tip from: https://github.com/mrdoob/three.js/issues/8016#issuecomment-194935980
-  gBufferUniforms = THREE.UniformsUtils.merge([gBufferUniforms, THREE.UniformsLib['lights']]);
-  gBufferUniforms.bumpTex.value = texture;
-  gBufferUniforms.kd.value = new THREE.Vector4(1.0, 1.0, 1.0, 1.0);
-  gBufferUniforms.maskColor.value = new THREE.Vector4(0.0, 0.0, 0.0, 1.0);
-
-  gBufferMaterial = new THREE.ShaderMaterial({
-    uniforms: gBufferUniforms,
-    vertexShader: document.getElementById("gvs").textContent.trim(),
-    fragmentShader: document.getElementById("gfs").textContent.trim(),
-    lights: false,
-    vertexTangents: true, // https://threejs.org/docs/#api/en/materials/Material.vertexTangents
-  });
-
-
-  // MRT (Multiple Render Target)
-  postUniforms = {
-    tColor: {
-      value: gBufferRenderTarget.textures[0]
-    },
-    tNormalMap: {
-      value: gBufferRenderTarget.textures[1]
-    },
-    tPosition: {
-      value: gBufferRenderTarget.textures[2]
-    },
-    tNormal: {
-      value: gBufferRenderTarget.textures[3]
-    },
-    tDepth: {
-      value: gBufferRenderTarget.depthTexture 
-    },
-  }
-  postUniforms.ka = new THREE.Uniform();
-  postUniforms.kd = new THREE.Uniform();
-  postUniforms.ks = new THREE.Uniform();
-  postUniforms.shi = new THREE.Uniform();
-  postUniforms.cameraPos = new THREE.Uniform();
-  postUniforms.gBufferToShow = new THREE.Uniform();
-  postUniforms.maskColor = new THREE.Uniform();
-  postUniforms.backgroundColor = new THREE.Uniform();
-  postUniforms.useMaskColor = new THREE.Uniform();
-  postUniforms.useSpecular = new THREE.Uniform();
-  
-  
-  // Tip from: https://github.com/mrdoob/three.js/issues/8016#issuecomment-194935980
-  postUniforms = THREE.UniformsUtils.merge([postUniforms, THREE.UniformsLib['lights']]);
-  postUniforms.tColor.value = gBufferRenderTarget.textures[0];
-  postUniforms.tNormalMap.value = gBufferRenderTarget.textures[1];
-  postUniforms.tPosition.value = gBufferRenderTarget.textures[2];
-  postUniforms.tNormal.value = gBufferRenderTarget.textures[3];
-  postUniforms.tDepth.value = gBufferRenderTarget.depthTexture;
-  postUniforms.ka.value = new THREE.Vector4(0.0,0.0,0.0,0.0); //(mi.ka[0], mi.ka[1], mi.ka[2], 1.0);
-  postUniforms.kd.value = new THREE.Vector4(1.0,1.0,1.0,1.0); //(mi.kd[0], mi.kd[1], mi.kd[2], 1.0);
-  postUniforms.ks.value = new THREE.Vector4(1.0, 1.0, 1.0, 1.0);
-  postUniforms.shi.value = 200.0; //materialInfo.ns/0.4;
-  postUniforms.cameraPos.value = camera.position;
-  postUniforms.gBufferToShow.value = 0;
-  postUniforms.maskColor.value = new THREE.Vector4(0.0, 0.0, 0.0, 1.0);
-  postUniforms.backgroundColor.value = new THREE.Vector4(1.0, 1.0, 1.0, 1.0);
-  postUniforms.useMaskColor.value = true;
-  postUniforms.useSpecular.value = false;
-
-  postMaterial = new THREE.ShaderMaterial({
-    vertexShader: document.getElementById('ssao-vs').textContent.trim(),
-    fragmentShader: document.getElementById('render-frag').textContent.trim(),
-    uniforms: postUniforms,
-    lights: true
-  });
-
-  const mesh = new THREE.Mesh( new THREE.PlaneGeometry(2,2), postMaterial );
-  postScene.add(mesh);
-}
-*/
-
 function createSSAOMaterial() {
 
   const textureLoader = new THREE.TextureLoader();
@@ -283,8 +196,8 @@ function createSSAOMaterial() {
 
   gBufferMaterial = new THREE.ShaderMaterial({
     uniforms: gBufferUniforms,
-    vertexShader: document.getElementById("geometry_vs").textContent.trim(),
-    fragmentShader: document.getElementById("geometry_fs").textContent.trim(),
+    vertexShader: document.getElementById("gvs").textContent.trim(),
+    fragmentShader: document.getElementById("gfs").textContent.trim(),
     lights: false,
     vertexTangents: true, // https://threejs.org/docs/#api/en/materials/Material.vertexTangents
   });
@@ -391,7 +304,7 @@ function createSSAOMaterial() {
       value: texture
     },
     tDepth: {
-      value: gBufferRenderTarget.depthTexture 
+      value: ssaoRenderTarget.textures[1] 
     },
     ssao: {
       value: ssaoRenderTarget.texture[0]
@@ -415,8 +328,8 @@ function createSSAOMaterial() {
   postUniforms.tColor.value = gBufferRenderTarget.textures[0];
   postUniforms.tPosition.value = gBufferRenderTarget.textures[1];
   postUniforms.tNormal.value = gBufferRenderTarget.textures[2];
-  postUniforms.tNormalMap.value = texture; // Normal map from image
-  postUniforms.tDepth.value = gBufferRenderTarget.depthTexture;
+  postUniforms.tNormalMap.value = gBufferRenderTarget.textures[3];
+  postUniforms.tDepth.value = ssaoRenderTarget.texture[1];
   postUniforms.ssao.value = ssaoRenderTarget.texture[0];
   postUniforms.ka.value = new THREE.Vector4(0.0,0.0,1.0,1.0);
   postUniforms.kd.value = new THREE.Vector4(1.0,1.0,1.0,1.0); 
@@ -466,7 +379,7 @@ function createRenderer() {
 
   // Create a multi render target with Float buffers
   ssaoRenderTarget = new THREE.WebGLMultiRenderTarget(
-    container.clientWidth, container.clientHeight, 1);
+    container.clientWidth, container.clientHeight, 2);
   ssaoRenderTarget.texture.format = THREE.RGBAFormat;
   ssaoRenderTarget.texture.minFilter = THREE.NearestFilter;
   ssaoRenderTarget.texture.magFilter = THREE.NearestFilter;
@@ -480,6 +393,7 @@ function createRenderer() {
 
   // Name SSAO attachments for debugging
   ssaoRenderTarget.textures[0].name = 'occlusion';
+  ssaoRenderTarget.textures[1].name = 'depthToDebug';
 
 
   // Create a multi render target with Float buffers
@@ -519,7 +433,8 @@ function update() {
     postUniforms.cameraPos.value = camera.position;
   }
   
-  if (lightFX) {
+  // if (lightFX) 
+  {
     const time = Date.now() * 0.0005;
     lights.forEach(light => {
       
@@ -541,6 +456,7 @@ function render() {
   renderer.render(scene, camera);
 
   // render scene into ssao
+  renderer.setRenderTarget(ssaoRenderTarget);
   renderer.setRenderTarget(null);
   renderer.render(ssaoScene, postCamera);
   
@@ -553,17 +469,6 @@ function render() {
 // SSAO
 // TODO: Colocar o código no lugar certo!
 function prepareSSAO() {
-  // Configure G-Buffer framebuffer
-  // Probably already:
-  //  - position color buffer
-  //  - normal color buffer
-  //  - color + specular color buffer (maybe will not used)
-  //  - create and attach depth buffer
-
-  // Also create framebuffer to hold processing stage
-  //  - SSAO color buffer
-  //  - buffer for blur stage (maybe will not used)
-
   // Generate sample kernel
   function generateSampleKernel() {
     for (let i = 0; i < kernelSize; i++) {
@@ -584,7 +489,6 @@ function prepareSSAO() {
     }
 
   }
-  
 
   function generateRandomKernelRotations() {
 
@@ -628,7 +532,6 @@ function prepareSSAO() {
 
   generateSampleKernel();
   generateRandomKernelRotations();
-  //createSSAOMaterial();
 }
 
 // 
@@ -647,19 +550,19 @@ function createGui() {
     'Intensity': 0.11125,
     'Use Normal Map': false,
     'Kernel Radius': 8,
-    'Minimal Distance': 0.005,
-    'Maximum Distance': 0.05,
+    'Min Distance': 0.005,
+    'Max Distance': 0.05,
   };  
   
   
   let gBufferToShow = gui.add(params, 'Show', { 
-    'SSAO' : 100,
     'Final color': 0, 
     'Position': 1,
     'Normal map': 2,
     'Vertex normal': 3,
     'Vertex color (mask)': 4,
-    'Depth': 5 
+    'Depth': 5,
+    'SSAO' : 100,
   });
 
   
@@ -670,7 +573,7 @@ function createGui() {
   gui.addColor(params, 'Mask', "#000000").onChange( function (color) {
     const c = new THREE.Color(color)
     const maskColor = new THREE.Vector4(c.r, c.g, c.b, c.a);
-    gBufferUniforms.maskColor.value = maskColor;
+    gBufferUniforms.color.value = maskColor;
     postUniforms.maskColor.value = maskColor;
     
   });
@@ -710,15 +613,15 @@ function createGui() {
     ssaoUniforms.useNormalMap.value = val;
   });
 
-  ssaoFolder.add(params, 'Kernel Radius', 0.0).onChange( function (val) {
+  ssaoFolder.add(params, 'Kernel Radius', 0.0, 32).step((1.0)).onChange( function (val) {
     ssaoUniforms.kernelRadius.value = val;
   });
 
-  ssaoFolder.add(params, 'Minimal Distance', 0.0).onChange( function (val) {
+  ssaoFolder.add(params, 'Min Distance', 0.001, 0.02).onChange( function (val) {
     ssaoUniforms.minDistance.value = val;
   });
 
-  ssaoFolder.add(params, 'Maximum Distance', 0.0).onChange( function (val) {
+  ssaoFolder.add(params, 'Max Distance', 0.01, 0.3).onChange( function (val) {
     ssaoUniforms.maxDistance.value = val;
   });
 }
@@ -775,13 +678,13 @@ function loadModelAndMaterial() {
     let s = 0.1;
     const ponyCartoonPosition = new THREE.Vector3( 0, 0, 0 );
     const ponyCartoonScale = new THREE.Vector3( 0.1, 0.1, 0.1 );
-    objLoader.load( 'models/pony_cartoon/Pony_cartoon.obj', obj => onObjLoad( obj, ponyCartoonPosition, ponyCartoonScale ), onProgress, onError );
+    // objLoader.load( 'models/pony_cartoon/Pony_cartoon.obj', obj => onObjLoad( obj, ponyCartoonPosition, ponyCartoonScale ), onProgress, onError );
 
     // Modelo adicional para testes com o SSAO
     s = 0.45;
     const superHumanPosition = new THREE.Vector3( 0, 0, 0 );
     const superHumanScale = new THREE.Vector3( s, s, s );
-    // objLoader.load( 'models/super_human/super_human.obj', obj => onObjLoad( obj, superHumanPosition, superHumanScale ), onProgress, onError );
+    objLoader.load( 'models/super_human/super_human.obj', obj => onObjLoad( obj, superHumanPosition, superHumanScale ), onProgress, onError );
 
     // Modelo adicional para testes com o SSAO
     s = 10.00;
