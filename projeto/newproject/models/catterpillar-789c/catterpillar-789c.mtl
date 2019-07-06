@@ -1,0 +1,35 @@
+# Blender MTL File: 'None'
+# Material Count: 3
+
+newmtl Accessories
+Ns 18.000005
+Ka 1.000000 1.000000 1.000000
+Kd 0.588000 0.588000 0.588000
+Ks 0.000000 0.000000 0.000000
+Ke 0.0 0.0 0.0
+Ni 1.450000
+d 1.000000
+illum 1
+
+newmtl [Pod_plate_mat]
+Ns 287.999996
+Ka 1.000000 1.000000 1.000000
+Kd 1.000000 1.000000 1.000000
+Ks 2.000000 2.000000 2.000000
+Ke 0.0 0.0 0.0
+Ni 1.450000
+d 1.000000
+illum 3
+map_Bump -bm 0.042005 /home/dlucio/Documents/PUC/2019.1/INF2610-Rendering em Tempo Real/Projeto/caterpillar-789c/source/Caterpillar 789c/mat3_n.jpg
+map_Kd /home/dlucio/Documents/PUC/2019.1/INF2610-Rendering em Tempo Real/Projeto/caterpillar-789c/source/Caterpillar 789c/mat3_c.jpg
+map_d /home/dlucio/Documents/PUC/2019.1/INF2610-Rendering em Tempo Real/Projeto/caterpillar-789c/source/Caterpillar 789c/mat3_a.jpg
+
+newmtl matCaterpillar_789c
+Ns 18.000005
+Ka 1.000000 1.000000 1.000000
+Kd 0.588000 0.588000 0.588000
+Ks 0.000000 0.000000 0.000000
+Ke 0.0 0.0 0.0
+Ni 1.450000
+d 1.000000
+illum 1
