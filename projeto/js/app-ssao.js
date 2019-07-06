@@ -1,5 +1,8 @@
 "use strict";
 
+import { SimplexNoise } from "../../js/vendor/three/jsm/math/SimplexNoise.js";
+
+
 // Important references
 // https://threejs.org/docs/index.html#api/en/renderers/webgl/WebGLProgram
 // https://threejs.org/docs/index.html#manual/en/introduction/How-to-use-WebGL2
@@ -25,6 +28,9 @@ let lights;
 let clock;
 let postUniforms;
 let gBufferUniforms
+let renderTarget;
+
+let composer;
 
 // For SSAO 
 let ssaoMaterial;
@@ -35,6 +41,12 @@ let kernelSize = 32;
 let kernel = [];
 let noiseTexture = null;
 let output = 0;
+
+// Blur SSAO
+let blurSSAOMaterial;;
+let blurSSAOUniforms;
+let blurSSAOScene;
+let blurSSAORenderTarget;
 
 let enableRotModel = false;
 
@@ -95,19 +107,49 @@ function init() {
   scene.background = new THREE.Color( 0xFFFFFF );
 
   ssaoScene = new THREE.Scene();
-  ssaoScene.background = new THREE.Color( 0x000000 );
+  // ssaoScene.background = new THREE.Color( 0xFF0000 );
+
+  blurSSAOScene = new THREE.Scene();
+  // blurSSAOScene.background = new THREE.Color( 0x00FFFF );
 
   postScene = new THREE.Scene();
-  postScene.background = new THREE.Color( 0x000000 );
+  // postScene.background = new THREE.Color( 0xFF00FF );
 
+  
   createCamera();
   createControls();
   createLights();
   loadModelAndMaterial();
   createRenderer();
   createGui();
-
+  
   prepareSSAO();
+  
+  /*
+  let gBufferEffect = {
+    uniforms: gBufferUniforms,
+    vertexShader: document.getElementById("gvs").textContent.trim(),
+    fragmentShader: document.getElementById("gfs").textContent.trim(),
+  };
+  let gBufferPass = new THREE.ShaderPass(gBufferEffect);
+  
+  let ssaoEffect = {
+    uniforms: gBufferUniforms,
+    vertexShader: document.getElementById("ssao-vs").textContent.trim(),
+    fragmentShader: document.getElementById("ssao-fs").textContent.trim(),
+  };
+  let ssaoPass = new THREE.ShaderPass(ssaoEffect);
+  
+  // PASSES
+  let renderPass = new THREE.RenderPass(scene, camera);
+  
+  composer.addPass(gBufferPass);
+  composer.addPass(ssaoPass);
+  composer.addPass(renderPass);
+  // renderPass.renderToScreen = true;
+  ssaoPass.renderToScreen = true;
+
+  */
 
   // start the animation loop
   renderer.setAnimationLoop( () => {
@@ -193,6 +235,7 @@ function createSSAOMaterial() {
 
   // Tip from: https://github.com/mrdoob/three.js/issues/8016#issuecomment-194935980
   gBufferUniforms.color.value = new THREE.Vector4(0.95, 0.95, 0.95, 1.0);
+  gBufferUniforms.bumpTex.value = texture;
 
   gBufferMaterial = new THREE.ShaderMaterial({
     uniforms: gBufferUniforms,
@@ -286,6 +329,31 @@ function createSSAOMaterial() {
   ssaoScene.add(ssaoMesh);  
 
 
+  blurSSAOUniforms = {
+    tDiffuse: {
+      value: gBufferRenderTarget.textures[1] //ssaoRenderTarget.texture[0]
+    },
+    resolution: {
+      type: "v2",
+      value: new THREE.Vector2()
+    },
+  }
+
+  // blurSSAOUniforms.tDiffuse.value = gBufferRenderTarget.textures[3];
+  blurSSAOUniforms.tDiffuse.value = ssaoRenderTarget.texture[0];
+  blurSSAOUniforms.resolution.value.x = container.clientWidth;
+  blurSSAOUniforms.resolution.value.y = container.clientHeight;
+
+  blurSSAOMaterial = new THREE.ShaderMaterial({
+    vertexShader: document.getElementById('blur-ssao-vs').textContent.trim(),
+    fragmentShader: document.getElementById('blur-ssao-fs').textContent.trim(),
+    uniforms: blurSSAOUniforms,
+    lights: false,
+  });
+  const blurSSAOMesh = new THREE.Mesh( new THREE.PlaneGeometry(2,2), blurSSAOMaterial );
+  blurSSAOScene.add(blurSSAOMesh);  
+
+
 
 
 
@@ -376,6 +444,9 @@ function createRenderer() {
 
   renderer.physicallyCorrectLights = true;
 
+  // Create a composer
+  // composer = new THREE.EffectComposer(renderer);
+
 
   // Create a multi render target with Float buffers
   ssaoRenderTarget = new THREE.WebGLMultiRenderTarget(
@@ -386,7 +457,7 @@ function createRenderer() {
   ssaoRenderTarget.texture.type = THREE.FloatType;
   ssaoRenderTarget.texture.generateMipmaps = false;
   ssaoRenderTarget.stencilBuffer = false;
-  ssaoRenderTarget.depthBuffer = true;
+  ssaoRenderTarget.depthBuffer = false;
   ssaoRenderTarget.depthTexture = new THREE.DepthTexture();
   ssaoRenderTarget.depthTexture.format = THREE.DepthFormat;
   ssaoRenderTarget.depthTexture.type = THREE.FloatType;
@@ -394,6 +465,23 @@ function createRenderer() {
   // Name SSAO attachments for debugging
   ssaoRenderTarget.textures[0].name = 'occlusion';
   ssaoRenderTarget.textures[1].name = 'depthToDebug';
+
+
+
+    // Create a multi render target with Float buffers
+    blurSSAORenderTarget = new THREE.WebGLMultiRenderTarget(
+      container.clientWidth, container.clientHeight, 1);
+    blurSSAORenderTarget.texture.format = THREE.RGBAFormat;
+    blurSSAORenderTarget.texture.minFilter = THREE.NearestFilter;
+    blurSSAORenderTarget.texture.magFilter = THREE.NearestFilter;
+    // blurSSAORenderTarget.texture.type = THREE.FloatType;
+    blurSSAORenderTarget.texture.generateMipmaps = false;
+    blurSSAORenderTarget.stencilBuffer = false;
+    blurSSAORenderTarget.depthBuffer = false;
+    // Name Blur SSAO attachments for debugging
+    blurSSAORenderTarget.textures[0].name = 'blur-ssao';
+
+
 
 
   // Create a multi render target with Float buffers
@@ -451,19 +539,48 @@ function update() {
 // render, or 'draw a still image', of the scene
 function render() {
   
+  // composer.render();
+
   // render scene into target
   renderer.setRenderTarget(gBufferRenderTarget);
   renderer.render(scene, camera);
 
-  // render scene into ssao
-  renderer.setRenderTarget(ssaoRenderTarget);
-  renderer.setRenderTarget(null);
-  renderer.render(ssaoScene, postCamera);
-  
-  // render post FX
-  renderer.setRenderTarget(null);
-  // renderer.render(postScene, postCamera);
-  
+  renderTarget = 1;
+  switch (renderTarget) {
+    case 1:
+      // render scene into ssao
+      renderer.setRenderTarget(null);
+      renderer.render(ssaoScene, postCamera);
+      break;
+
+    case 2:
+      // render blur ssao scene
+      renderer.setRenderTarget(ssaoRenderTarget);
+      renderer.render(ssaoScene, postCamera);
+      renderer.setRenderTarget(null);
+      renderer.render(blurSSAOScene, postCamera);
+      break;
+      
+      case 3:
+        // render post FX
+        renderer.setRenderTarget(null);
+        renderer.render(postScene, postCamera);
+        break;
+        
+      default:
+        // render scene into ssao
+        renderer.setRenderTarget(ssaoRenderTarget);
+        renderer.render(ssaoScene, postCamera);
+        
+        // render blur ssao scene
+        renderer.setRenderTarget(blurSSAORenderTarget);
+        renderer.render(blurSSAOScene, postCamera);
+        
+        // render post FX
+        renderer.setRenderTarget(null);
+        renderer.render(postScene, postCamera);
+        break;
+  }
 }
 
 // SSAO
@@ -540,7 +657,8 @@ function createGui() {
   let gui = new dat.GUI();
 
   let params = {
-    'Show': 0,
+    'PostFX': 0,
+    'Output(Test)':0,
     'Rotate': false,
     'Use Mask': true,
     'Use Specular': false,
@@ -555,20 +673,33 @@ function createGui() {
   };  
   
   
-  let gBufferToShow = gui.add(params, 'Show', { 
+  let gBufferToShow = gui.add(params, 'PostFX', { 
     'Final color': 0, 
     'Position': 1,
     'Normal map': 2,
     'Vertex normal': 3,
     'Vertex color (mask)': 4,
     'Depth': 5,
-    'SSAO' : 100,
+  });
+
+  let output = gui.add(params, 'Output(Test)',{
+    'Default':0,
+    'SSAO': 1,
+    'Blur': 2,
+    'PostFX': 3,
   });
 
   
   gBufferToShow.onChange( function (val) {
     postUniforms.gBufferToShow.value = val;
   });
+
+  output.onChange( function (val) {
+    renderTarget = val;
+    render();
+    console.log("RENDER_TARGET: " +  renderTarget);
+  });
+
   
   gui.addColor(params, 'Mask', "#000000").onChange( function (color) {
     const c = new THREE.Color(color)
@@ -684,13 +815,25 @@ function loadModelAndMaterial() {
     s = 0.45;
     const superHumanPosition = new THREE.Vector3( 0, 0, 0 );
     const superHumanScale = new THREE.Vector3( s, s, s );
-    objLoader.load( 'models/super_human/super_human.obj', obj => onObjLoad( obj, superHumanPosition, superHumanScale ), onProgress, onError );
+    // objLoader.load( 'models/super_human/super_human.obj', obj => onObjLoad( obj, superHumanPosition, superHumanScale ), onProgress, onError );
 
     // Modelo adicional para testes com o SSAO
     s = 10.00;
     const mechM6kPosition = new THREE.Vector3( 0, 20, 0 );
     const mechM6kScale = new THREE.Vector3( s, s, s );
     // objLoader.load( 'models/mech-m-6k/mech-m-6k.obj', obj => onObjLoad( obj, mechM6kPosition, mechM6kScale ), onProgress, onError );
+
+    // Modelo adicional para testes com o SSAO
+    s = 8.00;
+    const catterpillar789cPosition = new THREE.Vector3( 0, 20, 0 );
+    const catterpillar789cScale = new THREE.Vector3( s, s, s );
+    // objLoader.load( 'models/catterpillar-789c/catterpillar-789c.obj', obj => onObjLoad( obj, catterpillar789cPosition, catterpillar789cScale ), onProgress, onError );
+
+    // Modelo adicional para testes com o SSAO
+    s = 6.00;
+    const utilitarianVericlePosition = new THREE.Vector3( 0, 20, 0 );
+    const utilitarianVericleScale = new THREE.Vector3( s, s, s );
+    objLoader.load( 'models/utilitarian-vehicle/utilitarian-vehicle.obj', obj => onObjLoad( obj, utilitarianVericlePosition, utilitarianVericleScale ), onProgress, onError );
 
   }
 
@@ -720,6 +863,7 @@ function onWindowResize() {
   renderer.setSize( container.clientWidth, container.clientHeight );
   gBufferRenderTarget.setSize( container.clientWidth, container.clientHeight );
   ssaoRenderTarget.setSize( container.clientWidth, container.clientHeight );
+  blurSSAORenderTarget.setSize( container.clientWidth, container.clientHeight );
 
 }
 

@@ -404,4 +404,4 @@ SimplexNoise.prototype.noise4d = function ( x, y, z, w ) {
 
 };
 
-// export { SimplexNoise };
+export { SimplexNoise };
