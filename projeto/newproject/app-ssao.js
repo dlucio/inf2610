@@ -38,6 +38,8 @@ let container, stats;
 let camera, scene, renderer;
 let composer;
 let controls;
+let models;
+let actualVisibleModel;
 
 init();
 animate();
@@ -62,7 +64,7 @@ function init() {
     document.body.appendChild(renderer.domElement);
 
     camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.position.set(50, 70, 95.0);
+    camera.position.set(50, 60, 95.0);
 
     controls = new OrbitControls(camera, renderer.domElement);
     controls.minDistance = 1;
@@ -114,6 +116,39 @@ function init() {
     gui.add(ssaoPass, 'width');;
     gui.add(ssaoPass, 'height');;
 
+    const modelMap = {
+        0: "Pony Cartoon",
+        1: "Catterpillar",
+        2: "Utilitarian",
+        3: "Mech-M-6k",
+        4: "Super Human",
+    }
+    const modelsByName = {
+        "Model": 0
+    }
+    gui.add(modelsByName, "Model", {
+        
+        "Pony Cartoon": 0,
+        "Utilitarian": 1, 
+        "Catterpillar": 2, 
+        "Mech-M-6k": 3, 
+        "Super Human": 4, 
+        
+    }).onChange(function (value) {
+        
+        const model = models[ modelMap[value] ]
+        
+        if (actualVisibleModel === undefined || actualVisibleModel == null) {
+            // console.warn("MODEL", model);
+            actualVisibleModel = models[ modelMap[0] ];
+        }
+        
+        actualVisibleModel.visible = false;
+        model.visible = true;
+        actualVisibleModel = model;
+
+    });
+
     window.addEventListener('resize', onWindowResize, false);
 
 }
@@ -149,9 +184,12 @@ function render() {
 
 function loadModelAndMaterial() {
 
+    // store references to models loaded
+    models = {}
+
     // Load the model and generate its indices
     const objLoader = new OBJLoader2();
-    objLoader.setUseIndices(true);
+    // objLoader.setUseIndices(true);
 
 
     // the loader will report the loading progress to this function
@@ -165,7 +203,7 @@ function loadModelAndMaterial() {
 
     // A reusable function to set up the models. We're passing in a position parameter
     // so that they can be individually placed around the scene
-    const onObjLoad = (obj, position, scale, visible=true) => {
+    const onObjLoad = (name, obj, position, scale, visible=true) => {
 
         let model = obj.children;
         model = model[0];
@@ -173,6 +211,8 @@ function loadModelAndMaterial() {
         model.scale.copy(scale);
 
         model.visible = visible;
+
+        models[name] = model;
 
         // https://github.com/mrdoob/three.js/issues/12402
         // https://threejs.org/docs/#examples/utils/BufferGeometryUtils
@@ -191,34 +231,34 @@ function loadModelAndMaterial() {
     const ponyCartoonPosition = new THREE.Vector3(0, 0, 0);
     const ponyCartoonScale = new THREE.Vector3(0.1, 0.1, 0.1);
     objLoader.load( 'models/pony_cartoon/Pony_cartoon.obj', 
-        obj => onObjLoad( obj, ponyCartoonPosition, ponyCartoonScale, true ), onProgress, onError );
+        obj => onObjLoad( "Pony Cartoon", obj, ponyCartoonPosition, ponyCartoonScale, true ), onProgress, onError );
 
     // Modelo adicional para testes com o SSAO
     s = 0.45;
-    const superHumanPosition = new THREE.Vector3(0, 0, 0);
+    const superHumanPosition = new THREE.Vector3(0, -4, 0);
     const superHumanScale = new THREE.Vector3(s, s, s);
     objLoader.load('models/super_human/super_human.obj', 
-        obj => onObjLoad(obj, superHumanPosition, superHumanScale, false), onProgress, onError);
+        obj => onObjLoad("Super Human", obj, superHumanPosition, superHumanScale, false), onProgress, onError);
 
     // Modelo adicional para testes com o SSAO
     s = 10.00;
     const mechM6kPosition = new THREE.Vector3(0, 20, 0);
     const mechM6kScale = new THREE.Vector3(s, s, s);
     objLoader.load( 'models/mech-m-6k/mech-m-6k.obj', 
-        obj => onObjLoad( obj, mechM6kPosition, mechM6kScale, false ), onProgress, onError );
+        obj => onObjLoad( "Mech-M-6k", obj, mechM6kPosition, mechM6kScale, false ), onProgress, onError );
 
     // Modelo adicional para testes com o SSAO
-    s = 8.00;
+    s = 7.00;
     const catterpillar789cPosition = new THREE.Vector3(0, 20, 0);
     const catterpillar789cScale = new THREE.Vector3(s, s, s);
     objLoader.load( 'models/catterpillar-789c/catterpillar-789c.obj', 
-        obj => onObjLoad( obj, catterpillar789cPosition, catterpillar789cScale, false ), onProgress, onError );
+        obj => onObjLoad( "Catterpillar", obj, catterpillar789cPosition, catterpillar789cScale, false ), onProgress, onError );
 
     // Modelo adicional para testes com o SSAO
-    s = 6.00;
+    s = 5.50;
     const utilitarianVericlePosition = new THREE.Vector3(0, 20, 0);
     const utilitarianVericleScale = new THREE.Vector3(s, s, s);
     objLoader.load( 'models/utilitarian-vehicle/utilitarian-vehicle.obj', 
-        obj => onObjLoad( obj, utilitarianVericlePosition, utilitarianVericleScale, false ), onProgress, onError );
+        obj => onObjLoad( "Utilitarian", obj, utilitarianVericlePosition, utilitarianVericleScale, false ), onProgress, onError );
 
 }
