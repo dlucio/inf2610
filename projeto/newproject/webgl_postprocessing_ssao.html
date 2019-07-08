@@ -24,258 +24,140 @@
     </div>
   </div>
 
+  <script id="ssao-vs" type="x-shader/x-vertex">
+    #version 300 es
+
+    // Texture coordinates
+    out vec2 vUv;
+
+    void main() {
+
+      vUv = uv;
+      gl_Position =  projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+
+    }
+  </script>
+
+  <script id="ssao-fs" type="x-shader/x-fragment">
+    #version 300 es
+
+    out vec4 out_FragColor;
+
+    uniform sampler2D tDiffuse;
+    uniform sampler2D tNormal;
+    uniform sampler2D tDepth;
+    uniform sampler2D tNoise;
+
+    uniform vec3 kernel[ KERNEL_SIZE ];
+
+    uniform vec2 resolution;
+
+    uniform float cameraNear;
+    uniform float cameraFar;
+    uniform mat4 cameraProjectionMatrix;
+    uniform mat4 cameraInverseProjectionMatrix;
+    uniform float kernelRadius;
+    uniform float minDistance; // avoid artifacts caused by neighbour fragments with minimal depth difference
+    uniform float maxDistance; // avoid the influence of fragments which are too far away
+    
+    in vec2 vUv;
+    
+    #include <packing>
+
+    float getDepth( const in vec2 screenPosition ) {
+
+      return texture2D( tDepth, screenPosition ).x;
+
+    }
+
+    float getLinearDepth( const in vec2 screenPosition ) {
+
+      #if PERSPECTIVE_CAMERA == 1
+
+        float fragCoordZ = texture( tDepth, screenPosition ).x;
+        float viewZ = perspectiveDepthToViewZ( fragCoordZ, cameraNear, cameraFar );
+        return viewZToOrthographicDepth( viewZ, cameraNear, cameraFar );
+
+      #else
+
+        return texture2D( depthSampler, coord ).x;
+
+      #endif
+
+    }
+
+    float getViewZ( const in float depth ) {
+
+      #if PERSPECTIVE_CAMERA == 1
+
+        return perspectiveDepthToViewZ( depth, cameraNear, cameraFar );
+
+      #else
+
+        return orthographicDepthToViewZ( depth, cameraNear, cameraFar );
+
+      #endif
+
+    }
+
+    vec3 getViewPosition( const in vec2 screenPosition, const in float depth, const in float viewZ ) {
+
+      float clipW = cameraProjectionMatrix[2][3] * viewZ + cameraProjectionMatrix[3][3];
+      vec4 clipPosition = vec4( ( vec3( screenPosition, depth ) - 0.5 ) * 2.0, 1.0 );
+      clipPosition *= clipW; // unprojection.
+
+      return ( cameraInverseProjectionMatrix * clipPosition ).xyz;
+    }
+
+    vec3 getViewNormal( const in vec2 screenPosition ) {
+
+      return unpackRGBToNormal( texture2D( tNormal, screenPosition ).xyz );
+
+    }
+
+    void main() {
+
+      float depth = getDepth( vUv );
+      float viewZ = getViewZ( depth );
+
+      vec3 viewPosition = getViewPosition( vUv, depth, viewZ );
+      vec3 viewNormal = getViewNormal( vUv );
+
+      vec2 noiseScale = vec2( resolution.x / 4.0, resolution.y / 4.0 );
+      vec3 random = texture2D( tNoise, vUv * noiseScale ).xyz;
+
+      // compute matrix used to reorient a kernel vector
+
+      vec3 tangent = normalize( random - viewNormal * dot( random, viewNormal ) );
+      vec3 bitangent = cross( viewNormal, tangent );
+      mat3 kernelMatrix = mat3( tangent, bitangent, viewNormal );
+
+      float occlusion = 0.0;
+
+      for ( int i = 0; i < KERNEL_SIZE; i ++ ) { 
+        vec3 sampleVector = kernelMatrix * kernel[ i ]; // reorient sample vector in view space
+        vec3 samplePoint = viewPosition + ( sampleVector * kernelRadius ); // calculate sample point
+        vec4 samplePointNDC = cameraProjectionMatrix * vec4( samplePoint, 1.0 ); // project point and calculate NDC
+        samplePointNDC /= samplePointNDC.w;
+        vec2 samplePointUv = samplePointNDC.xy * 0.5 + 0.5; // compute uv coordinates
+
+        float realDepth = getLinearDepth( samplePointUv ); // get linear depth from depth texture
+        float sampleDepth = viewZToOrthographicDepth( samplePoint.z, cameraNear, cameraFar ); // compute linear depth of the sample view Z value
+        
+        float delta = sampleDepth - realDepth;
+        if ( delta > minDistance && delta < maxDistance ) { // if fragment is before sample point, increase occlusion
+          occlusion += 1.0;
+        }
+      }
+      occlusion = clamp( occlusion / float( KERNEL_SIZE ), 0.0, 1.0 );
+      out_FragColor = vec4( vec3( 1.0 - occlusion ), 1.0 );
+    }
+
+  </script>
+
   <script src="js/WebGL.js"></script>
-  <script type="module">
-
-    import * as THREE from '../build/three.module.js';
-
-      import Stats from './jsm/libs/stats.module.js';
-      import { GUI } from './jsm/libs/dat.gui.module.js';
-
-      import { EffectComposer } from './jsm/postprocessing/EffectComposer.js';
-      import { SSAOPass } from './jsm/postprocessing/SSAOPass.js';
-
-      import { MTLLoader } from './jsm/loaders/MTLLoader.js';
-      import { OBJLoader2 } from './jsm/loaders/OBJLoader2.js';
-      import { BufferGeometryUtils } from './jsm/utils/BufferGeometryUtils.js';
-      import { OrbitControls } from './jsm/controls/OrbitControls.js';
-
-      var container, stats;
-      var camera, scene, renderer;
-      var composer;
-      var group;
-      let controls;
-
-      init();
-      animate();
-
-      function init() {
-
-        if (WEBGL.isWebGL2Available() == false) {
-          document.body.appendChild(WEBGL.getWebGL2ErrorMessage());
-        }
-
-        const canvas = document.createElement('canvas');
-        const context = canvas.getContext('webgl2');
-
-        container = document.createElement( 'div' );
-        document.body.appendChild( container );
-
-        renderer = new THREE.WebGLRenderer({
-          canvas: canvas,
-          context: context
-        });
-        renderer.setSize( window.innerWidth, window.innerHeight );
-        document.body.appendChild( renderer.domElement );
-
-        // Not used with webgl2 context
-        // if ( ! renderer.extensions.get( 'WEBGL_depth_texture' ) ) {
-
-        //   document.querySelector( '#error' ).style.display = 'block';
-        //   return;
-
-        // }
-
-        camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 0.1, 1000 );
-        camera.position.set( 50, 70, 95.0 );
-
-        controls = new OrbitControls( camera, renderer.domElement );
-        controls.minDistance = 1;
-
-        scene = new THREE.Scene();
-        scene.background = new THREE.Color( 0xaaaaaa );
-
-        scene.add( new THREE.DirectionalLight() );
-        scene.add( new THREE.HemisphereLight() );
-        
-        loadModelAndMaterial();
-
-        group = new THREE.Group();
-        // scene.add( group );
-
-        var geometry = new THREE.BoxBufferGeometry( 10, 10, 10 );
-
-        for ( var i = 0; i < 100; i ++ ) {
-
-          var material = new THREE.MeshLambertMaterial( {
-            color: Math.random() * 0xffffff
-          } );
-
-          var mesh = new THREE.Mesh( geometry, material );
-          mesh.position.x = Math.random() * 400 - 200;
-          mesh.position.y = Math.random() * 400 - 200;
-          mesh.position.z = Math.random() * 400 - 200;
-          mesh.rotation.x = Math.random();
-          mesh.rotation.y = Math.random();
-          mesh.rotation.z = Math.random();
-
-          mesh.scale.setScalar( Math.random() * 10 + 2 );
-          group.add( mesh );
-
-        }
-
-        stats = new Stats();
-        container.appendChild( stats.dom );
-
-        var width = window.innerWidth;
-        var height = window.innerHeight;
-
-        composer = new EffectComposer( renderer );
-
-        var ssaoPass = new SSAOPass( scene, camera, width, height );
-        ssaoPass.kernelRadius = 16;
-        ssaoPass.ssaoMaterial.vertexShader = `
-          varying vec2 vUv;
-          void main() {
-            vUv = uv;
-            gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
-          }`.trim();
-          console.log("VS", ssaoPass.ssaoMaterial.vertexShader);
-
-        // Isto é necessário pois o WebGL2 por padrão usa THREE.UnsignedShortType
-        // O faz com que a precisão do depth seja diminuida.
-        // TODO: verificar se isto é necessário depois alterar todos os shader para WebGL 2.0
-        ssaoPass.beautyRenderTarget.depthTexture.type = THREE.FloatType;
-        // ssaoPass.depthRenderMaterial.uniforms[ 'tDepth' ].value.type = THREE.UnsignedShortType;
-          
-        composer.addPass( ssaoPass );
-
-        // Init gui
-        var gui = new GUI();
-
-        gui.add( ssaoPass, 'output', {
-          'Default': SSAOPass.OUTPUT.Default,
-          'SSAO Only': SSAOPass.OUTPUT.SSAO,
-          'SSAO Only + Blur': SSAOPass.OUTPUT.Blur,
-          'Beauty': SSAOPass.OUTPUT.Beauty,
-          'Depth': SSAOPass.OUTPUT.Depth,
-          'Normal': SSAOPass.OUTPUT.Normal
-        } ).onChange( function ( value ) {
-
-          ssaoPass.output = parseInt( value );
-
-        } );
-        gui.add( ssaoPass, 'kernelRadius' ).min( 0 ).max( 32 );
-        gui.add( ssaoPass, 'minDistance' ).min( 0.001 ).max( 0.02 );
-        gui.add( ssaoPass, 'maxDistance' ).min( 0.01 ).max( 0.3 );
-        gui.add( ssaoPass, 'width' );;
-        gui.add( ssaoPass, 'height' );;
-
-        window.addEventListener( 'resize', onWindowResize, false );
-
-      }
-
-      function onWindowResize() {
-
-        var width = window.innerWidth;
-        var height = window.innerHeight;
-
-        camera.aspect = width / height;
-        camera.updateProjectionMatrix();
-
-        renderer.setSize( width, height );
-        composer.setSize( width, height );
-
-      }
-
-      function animate() {
-
-        requestAnimationFrame( animate );
-
-        stats.begin();
-        render();
-        stats.end();
-
-      }
-
-      function render() {
-
-        var timer = performance.now();
-        group.rotation.x = timer * 0.0002;
-        group.rotation.y = timer * 0.0001;
-
-        composer.render();
-
-      }
-
-      function loadModelAndMaterial() {
-
-        // Load the model and generate its indices
-        const objLoader = new OBJLoader2();
-        objLoader.setUseIndices(true);
-
-        // A reusable function to set up the models. We're passing in a position parameter
-        // so that they can be individually placed around the scene
-        const onObjLoad = ( obj, position, scale ) => {
-
-          
-          let model = obj.children;
-          model = model[0];
-          model.position.copy( position );
-          model.scale.copy(scale);
-        
-        // https://github.com/mrdoob/three.js/issues/12402
-        // https://threejs.org/docs/#examples/utils/BufferGeometryUtils
-        BufferGeometryUtils.computeTangents( model.geometry );
-
-        scene.add( model );
-
-        };
-
-        const mtlLoader = new MTLLoader();
-        const onMTLLoad = (mtl) => {
-        const info = mtl.materialsInfo.Default;
-        console.log("Material Info: ", mtl);
-        
-
-        // load the first model. Each model is loaded asynchronously,
-        // so don't make any assumption about which one will finish loading first
-
-
-        // Modelo base para a implementação do SSAO
-        // Scale factor
-        let s = 0.1;
-        const ponyCartoonPosition = new THREE.Vector3( 0, 0, 0 );
-        const ponyCartoonScale = new THREE.Vector3( 0.1, 0.1, 0.1 );
-        // objLoader.load( 'models/pony_cartoon/Pony_cartoon.obj', obj => onObjLoad( obj, ponyCartoonPosition, ponyCartoonScale ), onProgress, onError );
-
-        // Modelo adicional para testes com o SSAO
-        s = 0.45;
-        const superHumanPosition = new THREE.Vector3( 0, 0, 0 );
-        const superHumanScale = new THREE.Vector3( s, s, s );
-        objLoader.load( 'models/super_human/super_human.obj', obj => onObjLoad( obj, superHumanPosition, superHumanScale ), onProgress, onError );
-
-        // Modelo adicional para testes com o SSAO
-        s = 10.00;
-        const mechM6kPosition = new THREE.Vector3( 0, 20, 0 );
-        const mechM6kScale = new THREE.Vector3( s, s, s );
-        // objLoader.load( 'models/mech-m-6k/mech-m-6k.obj', obj => onObjLoad( obj, mechM6kPosition, mechM6kScale ), onProgress, onError );
-
-        // Modelo adicional para testes com o SSAO
-        s = 8.00;
-        const catterpillar789cPosition = new THREE.Vector3( 0, 20, 0 );
-        const catterpillar789cScale = new THREE.Vector3( s, s, s );
-        // objLoader.load( 'models/catterpillar-789c/catterpillar-789c.obj', obj => onObjLoad( obj, catterpillar789cPosition, catterpillar789cScale ), onProgress, onError );
-
-        // Modelo adicional para testes com o SSAO
-        s = 6.00;
-        const utilitarianVericlePosition = new THREE.Vector3( 0, 20, 0 );
-        const utilitarianVericleScale = new THREE.Vector3( s, s, s );
-        // objLoader.load( 'models/utilitarian-vehicle/utilitarian-vehicle.obj', obj => onObjLoad( obj, utilitarianVericlePosition, utilitarianVericleScale ), onProgress, onError );
-
-        }
-
-        // the loader will report the loading progress to this function
-        const onProgress = () => {};
-
-        // the loader will send any error messages to this function, and we'll log
-        // them to to console
-        const onError = ( errorMessage ) => { console.log( errorMessage ); };
-
-        mtlLoader.load( 'models/pony_cartoon/Pony_cartoon.mtl', mtl => onMTLLoad( mtl ), onProgress, onError );
-
-        }
-    </script>
+  <script src="app-ssao.js" type="module"></script>
+  
 </body>
 
 </html>
