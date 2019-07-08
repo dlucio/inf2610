@@ -24,6 +24,7 @@
     </div>
   </div>
 
+  <script src="js/WebGL.js"></script>
   <script type="module">
 
     import * as THREE from '../build/three.module.js';
@@ -50,19 +51,30 @@
 
       function init() {
 
+        if (WEBGL.isWebGL2Available() == false) {
+          document.body.appendChild(WEBGL.getWebGL2ErrorMessage());
+        }
+
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('webgl2');
+
         container = document.createElement( 'div' );
         document.body.appendChild( container );
 
-        renderer = new THREE.WebGLRenderer();
+        renderer = new THREE.WebGLRenderer({
+          canvas: canvas,
+          context: context
+        });
         renderer.setSize( window.innerWidth, window.innerHeight );
         document.body.appendChild( renderer.domElement );
 
-        if ( ! renderer.extensions.get( 'WEBGL_depth_texture' ) ) {
+        // Not used with webgl2 context
+        // if ( ! renderer.extensions.get( 'WEBGL_depth_texture' ) ) {
 
-          document.querySelector( '#error' ).style.display = 'block';
-          return;
+        //   document.querySelector( '#error' ).style.display = 'block';
+        //   return;
 
-        }
+        // }
 
         camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 0.1, 1000 );
         camera.position.set( 50, 70, 95.0 );
@@ -112,6 +124,20 @@
 
         var ssaoPass = new SSAOPass( scene, camera, width, height );
         ssaoPass.kernelRadius = 16;
+        ssaoPass.ssaoMaterial.vertexShader = `
+          varying vec2 vUv;
+          void main() {
+            vUv = uv;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+          }`.trim();
+          console.log("VS", ssaoPass.ssaoMaterial.vertexShader);
+
+        // Isto é necessário pois o WebGL2 por padrão usa THREE.UnsignedShortType
+        // O faz com que a precisão do depth seja diminuida.
+        // TODO: verificar se isto é necessário depois alterar todos os shader para WebGL 2.0
+        ssaoPass.beautyRenderTarget.depthTexture.type = THREE.FloatType;
+        // ssaoPass.depthRenderMaterial.uniforms[ 'tDepth' ].value.type = THREE.UnsignedShortType;
+          
         composer.addPass( ssaoPass );
 
         // Init gui
@@ -132,6 +158,8 @@
         gui.add( ssaoPass, 'kernelRadius' ).min( 0 ).max( 32 );
         gui.add( ssaoPass, 'minDistance' ).min( 0.001 ).max( 0.02 );
         gui.add( ssaoPass, 'maxDistance' ).min( 0.01 ).max( 0.3 );
+        gui.add( ssaoPass, 'width' );;
+        gui.add( ssaoPass, 'height' );;
 
         window.addEventListener( 'resize', onWindowResize, false );
 
