@@ -130,7 +130,7 @@ function init() {
         4: "Super Human",
     }
     const modelsByName = {
-        "Model": 0
+        "model": 0
     }
     gui.add(modelsByName, "model", {
         
