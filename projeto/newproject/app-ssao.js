@@ -93,6 +93,12 @@ function init() {
     // Then, precision is reduced, generating weird artifacts
     ssaoPass.beautyRenderTarget.depthTexture.type = THREE.FloatType;
 
+    ssaoPass.blurMaterial.vertexShader = document.getElementById('blur-vs').textContent.trim();
+    ssaoPass.blurMaterial.fragmentShader = document.getElementById('blur-fs').textContent.trim();
+
+    ssaoPass.depthRenderMaterial.vertexShader = document.getElementById('depth-vs').textContent.trim();
+    ssaoPass.depthRenderMaterial.fragmentShader = document.getElementById('depth-fs').textContent.trim();
+
     composer.addPass(ssaoPass);
 
     // Init gui
