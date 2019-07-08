@@ -132,7 +132,7 @@ function init() {
     const modelsByName = {
         "Model": 0
     }
-    gui.add(modelsByName, "Model", {
+    gui.add(modelsByName, "model", {
         
         "Pony Cartoon": 0,
         "Utilitarian": 1, 
