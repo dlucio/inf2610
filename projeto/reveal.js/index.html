@@ -31,19 +31,72 @@
                     <p> <small>INF2610 2019.1</small></p>
                 </section>
 
+                <!-- INTRODUÇÃO -->
                 <section>
+
                     <section>
                         <h3>Introdução</h3>
                     </section>
+                    
+                    <!-- AO -->
                     <section>
-                        <h3>Ambient Occlusion</h3>
+                        <h3>Luz Ambiente</h3>
+                        <p style="text-align: justify">
+                            A iluminação ambiente é uma luz fixa e constante que adicionamos 
+                            à iluminação geral de uma cena para simular a dispersão da luz.
+                        </p>
+                        <p style="text-align: justify">
+                            Na realidade, a luz se espalha em todos os tipos de direções com intensidades variadas, 
+                            de modo que as partes indiretamente iluminadas de uma cena também devem ter intensidades variadas, 
+                            em vez de um componente ambiente constante.
+                        </p>
                     </section>
+                    <section>
+                        <h3>Ambient Occlusion (AO)</h3>
+                        <p style="text-align: justify">
+                            Um tipo de aproximação de iluminação indireta é a <b>Ambient Occlusion</b>, 
+                            que tenta aproximar a iluminação indireta, escurecendo vincos, 
+                            buracos e superfícies próximos uns dos outros.
+                        </p>
+                    </section>
+                    
+                    <!-- SSAO -->
                     <section>
                         <h3>Screen Space Ambient Occlusion</h3>
                         <h3>( SSAO )</h3>
+                        <p style="text-align: justify">
+                            SSAO é uma aproximação de AO implementada em GPU onde é usado o depth-buffer 
+                            para testar a oclusão de uma amostra de pontos. 
+                        </p>
+                        <p style="text-align: justify">
+                            A técnica SSAO foi desenvolvida pela CryTek para ser utilizada em seu jogo Crysis e em sua engine.
+                        </p>
                     </section>
+                    <section>
+                        <h3>Screen Space Ambient Occlusion</h3>
+                        <div>
+                            <img src="images/ssao_algoritmo_notas_aula.png" width="756" height="515" >
+                        </div>
+                        <div>
+                           <small style="font-size: 10px !important;">
+                            Fonte: http://webserver2.tecgraf.puc-rio.br/~celes/docs/inf2610/AO.pdf
+                        </small> 
+                        </div>
+                    </section>
+                    <section>
+                        <h3>Screen Space Ambient Occlusion</h3>
+                        <div>
+                            <img width="296" height="356" data-src="images/with_without_ssao.gif">
+                        </div>
+                        <div>
+                            <small style="font-size: 10px !important;">
+                                Fonte: https://learnopengl.com/Advanced-Lighting/SSAO
+                            </small>
+                        </div>
+					</section>
                 </section>
 
+                <!-- DESCRIÇÃO DA TÉCNICA -->
                 <section>
                     <section>
                         <h3>Descrição da Técnica</h3>
@@ -205,7 +258,7 @@
                         </pre>
                     </section>
                     <section>
-                        <h3>SSAO: Fragment Shader</h3>
+                        <h3>SSAO Shader</h3>
                         <pre>
                             <code class="glsl" data-trim data-line-numbers>
                             #version 300 es
@@ -376,7 +429,7 @@
                     <!-- PASSO 4 -->
                     <section>
                         <h3>Passo 4: Iluminação</h3>
-                        <p>Phong</p>
+                        <h5>Phong</h5>
                     </section>
 
                 </section>
@@ -387,8 +440,8 @@
                 </section>
                 <!-- EXECUÇÃO DO PROGRAMA -->
                 <section>
-                    <h3>TODO: Habilitar o programa</h3>
-                    <!-- <section  data-background-iframe="../ssao/ssao.html" data-background-interactive></section> -->
+                    <!-- <h3>TODO: Habilitar o programa</h3> -->
+                    <section  data-background-iframe="../ssao/ssao.html" data-background-interactive></section>
                 </section>
 
                 <section>
