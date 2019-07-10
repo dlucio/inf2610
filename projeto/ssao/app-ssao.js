@@ -117,7 +117,7 @@ function init() {
 
     });
     gui.add(ssaoPass, 'kernelRadius').min(0).max(32);
-    gui.add(ssaoPass, 'minDistance').min(0.001).max(0.02);
+    gui.add(ssaoPass, 'minDistance').min(0.0001).max(0.02);
     gui.add(ssaoPass, 'maxDistance').min(0.01).max(0.3);
     gui.add(ssaoPass, 'width');;
     gui.add(ssaoPass, 'height');;
