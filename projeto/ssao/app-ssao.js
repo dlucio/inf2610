@@ -40,6 +40,7 @@ let composer;
 let controls;
 let models;
 let actualVisibleModel;
+let hemisphereLight;
 
 init();
 animate();
@@ -73,7 +74,9 @@ function init() {
     scene.background = new THREE.Color(0xaaaaaa);
 
     scene.add(new THREE.DirectionalLight());
-    scene.add(new THREE.HemisphereLight());
+    hemisphereLight = new THREE.HemisphereLight();
+    hemisphereLight.intensity = 1.0;
+    scene.add(hemisphereLight);
 
     loadModelAndMaterial();
 
@@ -87,6 +90,7 @@ function init() {
 
     let ssaoPass = new SSAOPass(scene, camera, width, height);
     ssaoPass.kernelRadius = 16;
+    ssaoPass.minDistance = 0.001;
     ssaoPass.ssaoMaterial.vertexShader = document.getElementById('ssao-vs').textContent.trim();
     ssaoPass.ssaoMaterial.fragmentShader = document.getElementById('ssao-fs').textContent.trim();
     // This is needed because WebGL2 uses THREE.UnsignedShortType
@@ -119,8 +123,16 @@ function init() {
     gui.add(ssaoPass, 'kernelRadius').min(0).max(32);
     gui.add(ssaoPass, 'minDistance').min(0.0001).max(0.02);
     gui.add(ssaoPass, 'maxDistance').min(0.01).max(0.3);
-    gui.add(ssaoPass, 'width');;
-    gui.add(ssaoPass, 'height');;
+
+    const lightIntensity = {
+        "lightIntensity": hemisphereLight.intensity,
+    }
+    gui.add(lightIntensity, 'lightIntensity').min(0.0).max(2.0).onChange(function (value) {
+        hemisphereLight.intensity = value;
+    });
+
+    gui.add(ssaoPass, 'width');
+    gui.add(ssaoPass, 'height');
 
     const modelMap = {
         0: "Pony Cartoon",
